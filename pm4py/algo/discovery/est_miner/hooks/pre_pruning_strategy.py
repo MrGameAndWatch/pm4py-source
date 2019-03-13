@@ -13,5 +13,6 @@ class PrePruningStrategy(abc.ABC):
 class NoPrePruningStrategy(PrePruningStrategy):
 
     def execute(self, candidate_place):
+        print('Executed Pre Pruning')
         return False
 

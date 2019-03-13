@@ -14,4 +14,5 @@ class PostProcessingStrategy(abc.ABC):
 class NoPostProcessingStrategy(PostProcessingStrategy):
 
     def execute(self, candidate_places):
+        print('Executed Post Processing')
         return candidate_places

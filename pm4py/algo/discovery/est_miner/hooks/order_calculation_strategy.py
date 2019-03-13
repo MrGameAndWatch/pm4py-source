@@ -13,4 +13,5 @@ class OrderCalculationStrategy(abc.ABC):
 class NoOrderCalculationStrategy(OrderCalculationStrategy):
 
     def execute(self, log):
+        print('Executed Order Calculation')
         return None, None

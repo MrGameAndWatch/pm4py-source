@@ -13,4 +13,5 @@ class PreProcessingStrategy(abc.ABC):
 class NoPreProcessingStrategy(PreProcessingStrategy):
 
     def execute(self, log):
+        print('Executed Pre Processing')
         return log

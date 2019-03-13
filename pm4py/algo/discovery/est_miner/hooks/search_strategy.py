@@ -31,4 +31,5 @@ class NoSearchStrategy(SearchStrategy):
         in_order,
         out_order
     ):
+        print('Exectued Search')
         return None
