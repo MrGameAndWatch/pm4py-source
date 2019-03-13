@@ -78,13 +78,11 @@ class EstMiner:
         """
         self.__ready_for_execution_invariant()
         log = self.pre_processing_strategy.execute(log)
-        log, start_activity, end_activity = est_utils.insert_unique_start_and_end_activity(log)
+        log = est_utils.insert_unique_start_and_end_activity(log)
         in_order, out_order = self.order_calculation_strategy.execute(log)
         candidate_places = self.search_strategy.execute(
             log=log,
             parameters=parameters,
-            start_activity=start_activity,
-            end_activity=end_activity,
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
             out_order=out_order

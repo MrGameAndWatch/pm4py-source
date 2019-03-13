@@ -6,9 +6,7 @@ class SearchStrategy(abc.ABC):
     def execute(
         self, 
         log, 
-        parameters, 
-        start_activity, 
-        end_activity,
+        parameters,
         pre_pruning_strategy,
         in_order,
         out_order
@@ -24,9 +22,7 @@ class NoSearchStrategy(SearchStrategy):
     def execute(
         self, 
         log, 
-        parameters, 
-        start_activity, 
-        end_activity,
+        parameters,
         pre_pruning_strategy,
         in_order,
         out_order

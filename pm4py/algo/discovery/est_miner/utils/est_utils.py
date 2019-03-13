@@ -1,4 +1,6 @@
 from enum import Enum
+import pm4py.objects.log.util.log as log_util
+import pm4py.algo.discovery.est_miner.utils.constants as constants
 
 class PlaceFitnessState(Enum):
     FITTING = 1
@@ -17,10 +19,12 @@ def insert_unique_start_and_end_activity(log):
     Returns:
     ---------
     - The log with the transformed traces
-    - The unique start activity
-    - The unique end activity
     """
-    return None, None, None
+    return log_util.add_artificial_start_and_end(
+        log, 
+        start=constants.START_ACTIVITY, 
+        end=constants.END_ACTIVITY
+    )
 
 def evaluate_place(log, input_trans, output_trans, tau):
     """
