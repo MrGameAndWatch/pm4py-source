@@ -1,6 +1,11 @@
 import abc
 
 from pm4py.algo.discovery.est_miner.template.est_miner_template import EstMiner
+from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPreProcessingStrategy
+from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy import NoOrderCalculationStrategy
+from pm4py.algo.discovery.est_miner.hooks.search_strategy import NoSearchStrategy
+from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy import NoPostProcessingStrategy
+from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy import NoPrePruningStrategy
 
 class EstMinerDirector:
     """
@@ -13,11 +18,11 @@ class EstMinerDirector:
     
     def construct(self, builder):
         self.__builder = builder
-        self.__builder.build_pre_processing()
-        self.__builder.build_order_calculation()
-        self.__builder.build_pre_pruning()
+        self.__builder.build_pre_processing_strategy()
+        self.__builder.build_order_calculation_strategy()
+        self.__builder.build_pre_pruning_strategy()
         self.__builder.build_search_strategy()
-        self.__builder.build_post_processing()
+        self.__builder.build_post_processing_strategy()
 
 class EstMinerBuilder(metaclass=abc.ABCMeta):
     """
@@ -33,15 +38,15 @@ class EstMinerBuilder(metaclass=abc.ABCMeta):
         return self.__est_miner
     
     @abc.abstractmethod
-    def build_pre_processing(self):
+    def build_pre_processing_strategy(self):
         pass
     
     @abc.abstractmethod
-    def build_order_calculation(self):
+    def build_order_calculation_strategy(self):
         pass
     
     @abc.abstractmethod
-    def build_pre_pruning(self):
+    def build_pre_pruning_strategy(self):
         pass
     
     @abc.abstractmethod
@@ -49,6 +54,23 @@ class EstMinerBuilder(metaclass=abc.ABCMeta):
         pass
     
     @abc.abstractmethod
-    def build_post_processing(self):
+    def build_post_processing_strategy(self):
         pass
     
+
+class TestEstMinerBuilder(EstMinerBuilder):
+
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+    
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = NoOrderCalculationStrategy()
+    
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = NoPrePruningStrategy()
+    
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = NoSearchStrategy()
+    
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = NoPostProcessingStrategy()
