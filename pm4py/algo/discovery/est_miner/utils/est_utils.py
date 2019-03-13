@@ -40,3 +40,21 @@ def evaluate_place(log, input_trans, output_trans, tau):
     A collection of the place's fitness states.
     """
     return None
+
+def construct_net(log, resulting_places):
+    """
+    Construct the petri net, given the found set of places.
+
+    Parameters:
+    ---------
+    log :class:`pm4py.log.log.EventLog`
+            Event log to use for replay
+    resulting_places: Set of places found by the algorithm
+
+    Returns:
+    ---------
+    - The net
+    - The initial marking
+    - The final marking
+    """
+    return None, None, None
