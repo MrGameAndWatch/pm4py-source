@@ -7,8 +7,8 @@ class SearchStrategy(abc.ABCMeta):
         self, 
         log, 
         parameters, 
-        start_activities, 
-        end_activities,
+        start_activity, 
+        end_activity,
         pre_pruning_strategy,
         in_order,
         out_order
