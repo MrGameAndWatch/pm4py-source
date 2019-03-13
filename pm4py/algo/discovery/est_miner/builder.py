@@ -24,7 +24,7 @@ class EstMinerDirector:
         self.__builder.build_search_strategy()
         self.__builder.build_post_processing_strategy()
 
-class EstMinerBuilder(metaclass=abc.ABCMeta):
+class EstMinerBuilder(abc.ABC):
     """
     Interface for defining how to construct different versions 
     of the EstMiner.
