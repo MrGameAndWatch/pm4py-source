@@ -1,7 +1,16 @@
 import abc
 
-class PreProcessingStrategy(metaclass=abc.ABCMeta):
+class PreProcessingStrategy(abc.ABC):
 
     @abc.abstractmethod
     def execute(self, log):
+        """
+        Pre-process the given event log, using certain filters
+        and aggregates.
+        """
         pass
+
+class NoPreProcessingStrategy(PreProcessingStrategy):
+
+    def execute(self, log):
+        return log
