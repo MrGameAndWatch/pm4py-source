@@ -20,6 +20,7 @@ def insert_unique_start_and_end_activity(log):
     - The unique start activity
     - The unique end activity
     """
+    return None, None, None
 
 def evaluate_place(log, input_trans, output_trans, tau):
     """
@@ -38,3 +39,4 @@ def evaluate_place(log, input_trans, output_trans, tau):
     ---------
     A collection of the place's fitness states.
     """
+    return None
