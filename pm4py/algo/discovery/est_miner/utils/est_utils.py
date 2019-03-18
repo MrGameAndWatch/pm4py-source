@@ -1,11 +1,6 @@
-from enum import Enum
 import pm4py.objects.log.util.log as log_util
 import pm4py.algo.discovery.est_miner.utils.constants as constants
-
-class PlaceFitnessState(Enum):
-    FITTING = 1
-    OVERFED = 2
-    UNDERFED = 3
+import pm4py.algo.discovery.est_miner.utils.place_fitness as place_fitness
 
 def insert_unique_start_and_end_activity(log):
     """
@@ -26,7 +21,7 @@ def insert_unique_start_and_end_activity(log):
         end=constants.END_ACTIVITY
     )
 
-def evaluate_place(log, input_trans, output_trans, tau):
+def evaluate_place(log, place, tau):
     """
     Evaluate if a given place is underfed or overfed based on replaying
     the log.
@@ -43,7 +38,7 @@ def evaluate_place(log, input_trans, output_trans, tau):
     ---------
     A collection of the place's fitness states.
     """
-    return None
+    return place_fitness.PlaceFitnessEvaluator.evaluate_place_fitness(log, place, tau)
 
 def construct_net(log, resulting_places):
     """
