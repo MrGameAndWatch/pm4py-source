@@ -1,4 +1,4 @@
-class Place: # make compareable based on configurable orders
+class Place:
 
     def __init__(self, input_trans, output_trans):
         self.__input_trans = input_trans
