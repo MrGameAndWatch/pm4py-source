@@ -6,6 +6,7 @@ class State(Enum):
     FITTING = 1
     OVERFED = 2
     UNDERFED = 3
+    UNFITTING = 4
 
 class PlaceFitnessEvaluator:
 
@@ -59,16 +60,17 @@ class PlaceFitnessEvaluator:
         if cls.is_overfed(overfed_traces, involved_traces, tau):   states.add(State.OVERFED)
         if cls.is_underfed(underfed_traces, involved_traces, tau): states.add(State.UNDERFED)
         if cls.is_fitting(fitting_traces, involved_traces, tau):   states.add(State.FITTING)
+        else:                                                      states.add(State.UNFITTING)
         return states
     
     @classmethod
     def is_overfed(cls, overfed_traces, involved_traces, tau):
-        return (overfed_traces / involved_traces) > tau
+        return (overfed_traces / involved_traces) > (1 - tau)
     
     @classmethod
     def is_underfed(cls, underfed_traces, involved_traces, tau):
-        return (underfed_traces / involved_traces) > tau
+        return (underfed_traces / involved_traces) > (1 - tau)
     
     @classmethod
     def is_fitting(cls, fitting_traces, involved_traces, tau):
-        return (fitting_traces / involved_traces) > tau
+        return (fitting_traces / involved_traces) >= tau
