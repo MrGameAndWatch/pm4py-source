@@ -2,7 +2,7 @@ from enum import Enum
 
 from pm4py.algo.discovery.est_miner.utils.place import Place
 
-class State(Enum):
+class PlaceFitness(Enum):
     FITTING = 1
     OVERFED = 2
     UNDERFED = 3
@@ -19,9 +19,9 @@ class PlaceFitnessEvaluator:
 
         for trace in log:
             involved, states = cls.trace_fitness(trace, place)
-            if State.UNDERFED in states: underfed_traces += 1
-            if State.OVERFED  in states: overfed_traces  += 1
-            if State.FITTING  in states: fitting_traces  += 1
+            if PlaceFitness.UNDERFED in states: underfed_traces += 1
+            if PlaceFitness.OVERFED  in states: overfed_traces  += 1
+            if PlaceFitness.FITTING  in states: fitting_traces  += 1
             if involved:                 involved_traces += 1
         
         return cls.place_states(
@@ -45,22 +45,22 @@ class PlaceFitnessEvaluator:
             elif event in place.output_trans:
                 tokens -= 1
             if tokens < 0:
-                states.add(State.UNDERFED)
+                states.add(PlaceFitness.UNDERFED)
 
         if tokens > 0:
-            states.add(State.OVERFED)
-        elif tokens == 0 and State.UNDERFED not in states:
-            states.add(State.FITTING)
+            states.add(PlaceFitness.OVERFED)
+        elif tokens == 0 and PlaceFitness.UNDERFED not in states:
+            states.add(PlaceFitness.FITTING)
 
         return involved, states
     
     @classmethod
     def place_states(cls, overfed_traces, underfed_traces, involved_traces, fitting_traces, tau):
         states = set()
-        if cls.is_overfed(overfed_traces, involved_traces, tau):   states.add(State.OVERFED)
-        if cls.is_underfed(underfed_traces, involved_traces, tau): states.add(State.UNDERFED)
-        if cls.is_fitting(fitting_traces, involved_traces, tau):   states.add(State.FITTING)
-        else:                                                      states.add(State.UNFITTING)
+        if cls.is_overfed(overfed_traces, involved_traces, tau):   states.add(PlaceFitness.OVERFED)
+        if cls.is_underfed(underfed_traces, involved_traces, tau): states.add(PlaceFitness.UNDERFED)
+        if cls.is_fitting(fitting_traces, involved_traces, tau):   states.add(PlaceFitness.FITTING)
+        else:                                                      states.add(PlaceFitness.UNFITTING)
         return states
     
     @classmethod
