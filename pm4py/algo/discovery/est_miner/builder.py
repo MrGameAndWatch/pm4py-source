@@ -2,10 +2,13 @@ import abc
 
 from pm4py.algo.discovery.est_miner.template.est_miner_template import EstMiner
 from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPreProcessingStrategy
-from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy import NoOrderCalculationStrategy
-from pm4py.algo.discovery.est_miner.hooks.search_strategy import NoSearchStrategy
+from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy \
+import NoOrderCalculationStrategy, LexicographicalOrderStrategy
+from pm4py.algo.discovery.est_miner.hooks.search_strategy \
+import NoSearchStrategy, RestrictedRedTreeDfsStrategy
 from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy import NoPostProcessingStrategy
-from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy import NoPrePruningStrategy
+from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy \
+import NoPrePruningStrategy, PrePruneUselessPlacesStrategy
 
 class EstMinerDirector:
     """
@@ -71,6 +74,23 @@ class TestEstMinerBuilder(EstMinerBuilder):
     
     def build_search_strategy(self):
         self.est_miner.search_strategy = NoSearchStrategy()
+    
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = NoPostProcessingStrategy()
+
+class StandardEstMinerBuilder(EstMinerBuilder):
+
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = LexicographicalOrderStrategy()
+    
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
+    
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = RestrictedRedTreeDfsStrategy()
     
     def build_post_processing_strategy(self):
         self.est_miner.post_processing_strategy = NoPostProcessingStrategy()
