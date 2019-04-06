@@ -79,10 +79,11 @@ class EstMiner:
         self.__ready_for_execution_invariant()
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
-        in_order, out_order = self.order_calculation_strategy.execute(log)
+        in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
         candidate_places = self.search_strategy.execute(
             log=log,
-            parameters=parameters,
+            key=parameters['key'],
+            tau=parameters['tau'],
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
             out_order=out_order
@@ -93,7 +94,7 @@ class EstMiner:
         # output net
 
     def __construct_net(self, log, resulting_places):
-        return None, None, None
+        return resulting_places, None, None
     
     def __ready_for_execution_invariant(self):
         assert(self.pre_processing_strategy is not None)
