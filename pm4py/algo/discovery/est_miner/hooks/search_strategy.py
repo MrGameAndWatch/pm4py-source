@@ -47,7 +47,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         activites = log_util.get_event_labels(log, key)
         for a1 in activites:
             for a2 in activites:
-                p = Place({a1}, {a2})
+                p = Place(frozenset([a1]), frozenset([a2]))
                 if not pre_pruning_strategy.execute(p):
                     roots.append(p)
         return roots
@@ -82,18 +82,19 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if PlaceFitness.FITTING in place_fitness_states:
             fitting_places.append(root)
         
-        if PlaceFitness.OVERFED in place_fitness_states:
+        if PlaceFitness.OVERFED in place_fitness_states: # prune
             return fitting_places
 
         a_max = self.__get_max_element(root.input_trans, in_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
-            extended_input_trans = copy.copy(root.input_trans)
+            extended_input_trans = list(root.input_trans.copy())
             new_element = larger_elements.pop()
             if new_element in extended_input_trans:
                 continue
-            extended_input_trans.add( new_element )
-            new_root = Place(extended_input_trans, copy.copy(root.output_trans))
+            extended_input_trans.append( new_element )
+            input_trans = frozenset(extended_input_trans)
+            new_root = Place(input_trans, root.output_trans.copy())
             fitting_places.extend( self.__traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy) )
             fitting_places.extend( self.__traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy) )
         return fitting_places
@@ -116,18 +117,19 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if PlaceFitness.FITTING in place_fitness_states:
             fitting_places.append(root)
 
-        if PlaceFitness.UNDERFED in place_fitness_states:
+        if PlaceFitness.UNDERFED in place_fitness_states: # prune
             return fitting_places 
 
         a_max = self.__get_max_element(root.input_trans, out_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
-            extended_output_trans = copy.copy(root.output_trans)
+            extended_output_trans = list(root.output_trans.copy())
             new_element = larger_elements.pop()
             if new_element in extended_output_trans:
                 continue
-            extended_output_trans.add(new_element)
-            new_root = Place(copy.copy(root.input_trans), extended_output_trans)
+            extended_output_trans.append(new_element)
+            output_trans = frozenset(extended_output_trans)
+            new_root = Place(root.input_trans.copy(), output_trans)
             fitting_places.extend( self.__traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy) )
             fitting_places.extend( self.__traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy) )
         return fitting_places
