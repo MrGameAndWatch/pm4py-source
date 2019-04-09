@@ -1,5 +1,11 @@
+import time
+
 from pm4py.algo.discovery.est_miner.utils import est_utils
+from pm4py.algo.discovery.est_miner.utils import constants as const
+import pm4py.objects.log.util.log as log_util
+from pm4py.objects import petri
 from pm4py.objects.petri.petrinet import Marking
+from pm4py.objects.petri.petrinet import PetriNet
 
 class EstMiner:
 
@@ -89,12 +95,33 @@ class EstMiner:
             out_order=out_order
         )
         resulting_places = self.post_processing_strategy.execute(candidate_places)
-        net, src, sink = self.__construct_net(log, resulting_places)
+        net, src, sink = self.__construct_net(log, parameters['key'], resulting_places)
         return net, Marking({src: 1}), Marking({sink: 1})
-        # output net
 
-    def __construct_net(self, log, resulting_places):
-        return resulting_places, None, None
+    def __construct_net(self, log, key, resulting_places):
+        transitions = dict()
+        activities = log_util.get_event_labels(log, key)
+        net = PetriNet('est_miner_net' + str(time.time()))
+        for i in range(0, len(activities)):
+            transitions[activities[i]] = PetriNet.Transition(activities[i], activities[i])
+            net.transitions.add(transitions[activities[i]])
+        
+        source = PetriNet.Place('start')
+        net.places.add(source)
+        petri.utils.add_arc_from_to(source, transitions[const.START_ACTIVITY], net)
+
+        sink = PetriNet.Place('end')
+        net.places.add(sink)
+        petri.utils.add_arc_from_to(transitions[const.END_ACTIVITY], sink, net)
+
+        for p in resulting_places:
+            place = PetriNet.Place(p.name)
+            net.places.add(place)
+            for in_trans in p.input_trans:
+                petri.utils.add_arc_from_to(transitions[in_trans], place, net)
+            for out_trans in p.output_trans:
+                petri.utils.add_arc_from_to(place, transitions[out_trans], net)
+        return net, source, sink
     
     def __ready_for_execution_invariant(self):
         assert(self.pre_processing_strategy is not None)
