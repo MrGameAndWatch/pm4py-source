@@ -21,14 +21,3 @@ class DeleteDuplicatePlacesPostProcessingStrategy(PostProcessingStrategy):
 
     def execute(self, candidate_places):
         return set(candidate_places)
-
-class ReplayBasedPostProcessingStrategy(PostProcessingStrategy):
-
-    def execute(self, candidate_places):
-        # Create net
-        # for each place
-        # remove place
-        # test if net still replays log
-        # if yes: keep place removed
-        # if no: re-add place
-        return candidate_places
