@@ -1,5 +1,3 @@
-empty_set = frozenset()
-
 class Place:
 
     def __init__(self, input_trans, output_trans):
@@ -7,13 +5,10 @@ class Place:
         self.__output_trans = output_trans
     
     def __eq__(self, other):
-        return (
-            self.input_trans.difference(other.input_trans) == empty_set
-        and self.output_trans.difference(other.input_trans) == empty_set
-        )
+        return (self.input_trans, self.output_trans) == (other.input_trans, other.output_trans)
     
     def __hash__(self):
-        return hash((self.input_trans.__hash__(), self.output_trans.__hash__()))
+        return hash((self.input_trans, self.output_trans))
     
     @property
     def input_trans(self):
