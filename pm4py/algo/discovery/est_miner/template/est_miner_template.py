@@ -94,33 +94,33 @@ class EstMiner:
             in_order=in_order,
             out_order=out_order
         )
-        resulting_places = self.post_processing_strategy.execute(candidate_places)
-        net, src, sink = self.__construct_net(log, parameters['key'], resulting_places)
+        transitions = log_util.get_event_labels(log, parameters['key'])
+        resulting_places = self.post_processing_strategy.execute(candidate_places, transitions)
+        net, src, sink = self.__construct_net(log, transitions, resulting_places)
         return net, Marking({src: 1}), Marking({sink: 1})
 
-    def __construct_net(self, log, key, resulting_places):
-        transitions = dict()
-        activities = log_util.get_event_labels(log, key)
+    def __construct_net(self, log, transitions, resulting_places):
+        transition_dict = dict()
         net = PetriNet('est_miner_net' + str(time.time()))
-        for i in range(0, len(activities)):
-            transitions[activities[i]] = PetriNet.Transition(activities[i], activities[i])
-            net.transitions.add(transitions[activities[i]])
+        for i in range(0, len(transitions)):
+            transition_dict[transitions[i]] = PetriNet.Transition(transitions[i], transitions[i])
+            net.transitions.add(transition_dict[transitions[i]])
         
         source = PetriNet.Place('start')
         net.places.add(source)
-        petri.utils.add_arc_from_to(source, transitions[const.START_ACTIVITY], net)
+        petri.utils.add_arc_from_to(source, transition_dict[const.START_ACTIVITY], net)
 
         sink = PetriNet.Place('end')
         net.places.add(sink)
-        petri.utils.add_arc_from_to(transitions[const.END_ACTIVITY], sink, net)
+        petri.utils.add_arc_from_to(transition_dict[const.END_ACTIVITY], sink, net)
 
         for p in resulting_places:
             place = PetriNet.Place(p.name)
             net.places.add(place)
             for in_trans in p.input_trans:
-                petri.utils.add_arc_from_to(transitions[in_trans], place, net)
+                petri.utils.add_arc_from_to(transition_dict[in_trans], place, net)
             for out_trans in p.output_trans:
-                petri.utils.add_arc_from_to(place, transitions[out_trans], net)
+                petri.utils.add_arc_from_to(place, transition_dict[out_trans], net)
         return net, source, sink
     
     def __ready_for_execution_invariant(self):

@@ -4,6 +4,7 @@ from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMine
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.petri.check_soundness import check_petri_wfnet_and_soundness
+from pm4py.visualization.petrinet.factory import apply, view, save
 
 def execute_script():
     # loads the log
@@ -15,13 +16,12 @@ def execute_script():
     parameters = dict()
     parameters['key'] = 'concept:name'
     parameters['tau'] = 1
-    resulting_places, im, fm = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
+    #resulting_places = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
+    net, im, fm = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
+    gviz = apply(net, initial_marking=im, final_marking=fm)
+    print(gviz)
+    view(gviz)
 
-    for place in resulting_places:
-        print('Input: ')
-        print(place.input_trans)
-        print('| Output: ')
-        print(place.output_trans)
 
 if __name__ == "__main__":
     execute_script()
