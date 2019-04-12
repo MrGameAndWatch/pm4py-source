@@ -26,7 +26,6 @@ class NoPostProcessingStrategy(PostProcessingStrategy):
 class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
     def execute(self, candidate_places, transitions):
-        candidate_places = set(candidate_places)
         pre  = {}
         post = {}
         for p in candidate_places:
@@ -41,7 +40,7 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
                 else:
                     post[p, t] = 0
 
-        pruned_set = candidate_places.copy()
+        pruned_set = set(candidate_places)
         for p_test in candidate_places:
             model = Model('Test Place')
             y = {}

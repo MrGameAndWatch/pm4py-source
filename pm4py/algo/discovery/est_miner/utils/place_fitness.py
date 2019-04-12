@@ -18,13 +18,14 @@ class PlaceFitnessEvaluator:
         involved_traces = 0
 
         for trace in log:
-            involved, states = cls.trace_fitness(trace, place, key)
+            (involved, states) = cls.trace_fitness(trace, place, key)
             if PlaceFitness.UNDERFED in states: underfed_traces += 1
             if PlaceFitness.OVERFED  in states: overfed_traces  += 1
             if PlaceFitness.FITTING  in states: fitting_traces  += 1
-            if involved:                 involved_traces += 1
+            if involved:                        involved_traces += 1
         
         return cls.place_states(
+            place,
             overfed_traces,
             underfed_traces,
             fitting_traces,
@@ -40,25 +41,24 @@ class PlaceFitnessEvaluator:
         for event in trace:
             if event[key] in place.input_trans or event[key] in place.output_trans:
                 involved = True
-            if event[key] in place.input_trans:
-                tokens += 1
-            elif event[key] in place.output_trans:
+            if event[key] in place.output_trans:
                 tokens -= 1
             if tokens < 0:
                 states.add(PlaceFitness.UNDERFED)
+            if event[key] in place.input_trans:
+                tokens += 1
 
         if tokens > 0:
             states.add(PlaceFitness.OVERFED)
-        elif tokens == 0 and PlaceFitness.UNDERFED not in states:
+        elif tokens == 0 and PlaceFitness.UNDERFED not in states and involved:
             states.add(PlaceFitness.FITTING)
 
-        return involved, states
+        return (involved, states)
     
     @classmethod
-    def place_states(cls, overfed_traces, underfed_traces, involved_traces, fitting_traces, tau):
+    def place_states(cls, place, overfed_traces, underfed_traces, fitting_traces, involved_traces, tau):
         states = set()
-        if involved_traces == 0: ### WHAT ABOUT THIS
-            return {PlaceFitness.UNFITTING}
+
         if cls.is_overfed(overfed_traces, involved_traces, tau):   states.add(PlaceFitness.OVERFED)
         if cls.is_underfed(underfed_traces, involved_traces, tau): states.add(PlaceFitness.UNDERFED)
         if cls.is_fitting(fitting_traces, involved_traces, tau):   states.add(PlaceFitness.FITTING)
@@ -67,12 +67,21 @@ class PlaceFitnessEvaluator:
     
     @classmethod
     def is_overfed(cls, overfed_traces, involved_traces, tau):
-        return (overfed_traces / involved_traces) > (1 - tau)
+        return (
+            involved_traces > 0
+            and (overfed_traces / involved_traces) > (1 - tau)
+        )
     
     @classmethod
     def is_underfed(cls, underfed_traces, involved_traces, tau):
-        return (underfed_traces / involved_traces) > (1 - tau)
+        return (
+            involved_traces > 0
+            and (underfed_traces / involved_traces) > (1 - tau)
+        )
     
     @classmethod
     def is_fitting(cls, fitting_traces, involved_traces, tau):
-        return (fitting_traces / involved_traces) >= tau
+        return (
+            involved_traces > 0 
+            and (fitting_traces / involved_traces) >= tau
+        )

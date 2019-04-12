@@ -17,9 +17,13 @@ def execute_script():
     parameters['key'] = 'concept:name'
     parameters['tau'] = 1
     #resulting_places = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
+    #for p in resulting_places:
+    #    print('------------')
+    #    print(p.name)
+    #    print('------------')
     net, im, fm = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
     gviz = apply(net, initial_marking=im, final_marking=fm)
-    print(gviz)
+    #print(gviz)
     view(gviz)
 
 
