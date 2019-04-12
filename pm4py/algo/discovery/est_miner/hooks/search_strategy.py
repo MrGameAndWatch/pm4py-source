@@ -5,7 +5,7 @@ import logging
 import pm4py.objects.log.util.log as log_util
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.algo.discovery.est_miner.utils.place_fitness import PlaceFitnessEvaluator, PlaceFitness
-from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder
+from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder, max_element
 
 class SearchStrategy(abc.ABC):
 
@@ -57,15 +57,6 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                     roots.append(p)
         return roots
     
-    def _get_max_element(self, activties, order):
-        a_max = None
-        for a in activties:
-            if a_max == None:
-                a_max = a
-            elif a in set(order.is_larger_relations[a_max]):
-                a_max = a
-        return a_max
-    
     def _traverse_red_tree(
         self,
         log,
@@ -95,7 +86,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 logger.info('Pruned (Red): ' + root.name)
             return fitting_places
 
-        a_max = self._get_max_element(root.input_trans, in_order)
+        a_max = max_element(root.input_trans, in_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
             extended_input_trans = list(root.input_trans.copy())
@@ -135,7 +126,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 logger.info('Pruned (Blue): ' + root.name)
             return fitting_places 
 
-        a_max = self._get_max_element(root.input_trans, out_order)
+        a_max = max_element(root.input_trans, out_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
             extended_output_trans = list(root.output_trans.copy())

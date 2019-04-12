@@ -17,3 +17,12 @@ class ActivityOrder:
     @property
     def is_larger_relations(self):
         return self._is_larger_relations
+
+def max_element(activities, order):
+    a_max = None
+    for a in activities:
+        if a_max == None:
+            a_max = a
+        elif a in set(order.is_larger_relations[a_max]):
+            a_max = a
+    return a_max
