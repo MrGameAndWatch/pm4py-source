@@ -19,15 +19,15 @@ class EstMinerDirector:
     """
 
     def __init__(self):
-        self.__builder = None
+        self._builder = None
     
     def construct(self, builder):
-        self.__builder = builder
-        self.__builder.build_pre_processing_strategy()
-        self.__builder.build_order_calculation_strategy()
-        self.__builder.build_pre_pruning_strategy()
-        self.__builder.build_search_strategy()
-        self.__builder.build_post_processing_strategy()
+        self._builder = builder
+        self._builder.build_pre_processing_strategy()
+        self._builder.build_order_calculation_strategy()
+        self._builder.build_pre_pruning_strategy()
+        self._builder.build_search_strategy()
+        self._builder.build_post_processing_strategy()
 
 class EstMinerBuilder(abc.ABC):
     """
@@ -36,11 +36,11 @@ class EstMinerBuilder(abc.ABC):
     """
 
     def __init__(self):
-        self.__est_miner = EstMiner()
+        self._est_miner = EstMiner()
     
     @property
     def est_miner(self):
-        return self.__est_miner
+        return self._est_miner
     
     @abc.abstractmethod
     def build_pre_processing_strategy(self):

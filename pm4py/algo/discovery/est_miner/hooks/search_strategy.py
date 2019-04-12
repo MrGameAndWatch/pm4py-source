@@ -41,13 +41,13 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if (logger is not None):
             logger.info('Starting Search')
         fitting_places = list()
-        roots = self.__get_roots(log, key, pre_pruning_strategy) # list of places
+        roots = self._get_roots(log, key, pre_pruning_strategy) # list of places
         for root in roots:
-            fitting_places.extend( self.__traverse_red_tree(log, tau, key, root, in_order, out_order, pre_pruning_strategy, logger=logger) )
-            fitting_places.extend( self.__traverse_blue_tree(log, tau, key, root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_red_tree(log, tau, key, root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_blue_tree(log, tau, key, root, in_order, out_order, pre_pruning_strategy, logger=logger) )
         return fitting_places
 
-    def __get_roots(self, log, key, pre_pruning_strategy):
+    def _get_roots(self, log, key, pre_pruning_strategy):
         roots = list()
         activites = log_util.get_event_labels(log, key)
         for a1 in activites:
@@ -57,7 +57,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                     roots.append(p)
         return roots
     
-    def __get_max_element(self, activties, order):
+    def _get_max_element(self, activties, order):
         a_max = None
         for a in activties:
             if a_max == None:
@@ -66,7 +66,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 a_max = a
         return a_max
     
-    def __traverse_red_tree(
+    def _traverse_red_tree(
         self,
         log,
         tau,
@@ -95,7 +95,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 logger.info('Pruned (Red): ' + root.name)
             return fitting_places
 
-        a_max = self.__get_max_element(root.input_trans, in_order)
+        a_max = self._get_max_element(root.input_trans, in_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
             extended_input_trans = list(root.input_trans.copy())
@@ -105,11 +105,11 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
             extended_input_trans.append( new_element )
             input_trans = frozenset(extended_input_trans)
             new_root = Place(input_trans, root.output_trans.copy())
-            fitting_places.extend( self.__traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
-            fitting_places.extend( self.__traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
         return fitting_places
 
-    def __traverse_blue_tree(
+    def _traverse_blue_tree(
         self,
         log,
         tau,
@@ -135,7 +135,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 logger.info('Pruned (Blue): ' + root.name)
             return fitting_places 
 
-        a_max = self.__get_max_element(root.input_trans, out_order)
+        a_max = self._get_max_element(root.input_trans, out_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
             extended_output_trans = list(root.output_trans.copy())
@@ -145,8 +145,8 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
             extended_output_trans.append(new_element)
             output_trans = frozenset(extended_output_trans)
             new_root = Place(root.input_trans.copy(), output_trans)
-            fitting_places.extend( self.__traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
-            fitting_places.extend( self.__traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_red_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
+            fitting_places.extend( self._traverse_blue_tree(log, tau, key, new_root, in_order, out_order, pre_pruning_strategy, logger=logger) )
         return fitting_places
 
 class NoSearchStrategy(SearchStrategy):

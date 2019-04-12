@@ -10,51 +10,51 @@ from pm4py.objects.petri.petrinet import PetriNet
 class EstMiner:
 
     def __init__(self):
-        self.__pre_processing_strategy = None
-        self.__order_calculation_strategy = None
-        self.__pre_pruning_strategy = None
-        self.__search_strategy = None
-        self.__post_processing_strategy = None
+        self._pre_processing_strategy = None
+        self._order_calculation_strategy = None
+        self._pre_pruning_strategy = None
+        self._search_strategy = None
+        self._post_processing_strategy = None
     
     @property
     def pre_processing_strategy(self):
-        return self.__pre_processing_strategy
+        return self._pre_processing_strategy
     
     @pre_processing_strategy.setter
     def pre_processing_strategy(self, strategy):
-        self.__pre_processing_strategy = strategy
+        self._pre_processing_strategy = strategy
     
     @property
     def order_calculation_strategy(self):
-        return self.__order_calculation_strategy
+        return self._order_calculation_strategy
 
     @order_calculation_strategy.setter
     def order_calculation_strategy(self, strategy):
-        self.__order_calculation_strategy = strategy
+        self._order_calculation_strategy = strategy
     
     @property
     def pre_pruning_strategy(self):
-        return self.__pre_pruning_strategy
+        return self._pre_pruning_strategy
 
     @pre_pruning_strategy.setter
     def pre_pruning_strategy(self, strategy):
-        self.__pre_pruning_strategy = strategy
+        self._pre_pruning_strategy = strategy
     
     @property
     def search_strategy(self):
-        return self.__search_strategy
+        return self._search_strategy
 
     @search_strategy.setter
     def search_strategy(self, strategy):
-        self.__search_strategy = strategy
+        self._search_strategy = strategy
     
     @property
     def post_processing_strategy(self):
-        return self.__post_processing_strategy
+        return self._post_processing_strategy
 
     @post_processing_strategy.setter
     def post_processing_strategy(self, strategy):
-        self.__post_processing_strategy = strategy
+        self._post_processing_strategy = strategy
 
     def apply(self, log, parameters=None, logger=None):
         """
@@ -82,7 +82,7 @@ class EstMiner:
         Lisa L. Mannel, Wil M. P. van der Aalst, "Finding Complex Process-Structures by Exploiting
         the Token-Game"
         """
-        self.__ready_for_execution_invariant()
+        self._ready_for_execution_invariant()
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
         in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
@@ -97,10 +97,10 @@ class EstMiner:
         )
         transitions = log_util.get_event_labels(log, parameters['key'])
         resulting_places = self.post_processing_strategy.execute(candidate_places, transitions, logger=logger)
-        net, src, sink = self.__construct_net(log, transitions, resulting_places)
+        net, src, sink = self._construct_net(log, transitions, resulting_places)
         return net, Marking({src: 1}), Marking({sink: 1})
 
-    def __construct_net(self, log, transitions, resulting_places):
+    def _construct_net(self, log, transitions, resulting_places):
         transition_dict = dict()
         net = PetriNet('est_miner_net' + str(time.time()))
         for i in range(0, len(transitions)):
@@ -124,7 +124,7 @@ class EstMiner:
                 petri.utils.add_arc_from_to(place, transition_dict[out_trans], net)
         return net, source, sink
     
-    def __ready_for_execution_invariant(self):
+    def _ready_for_execution_invariant(self):
         assert(self.pre_processing_strategy is not None)
         assert(self.order_calculation_strategy is not None)
         assert(self.pre_pruning_strategy is not None)
