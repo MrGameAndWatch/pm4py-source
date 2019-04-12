@@ -9,7 +9,7 @@ from pm4py.algo.discovery.est_miner.utils import constants as const
 class PostProcessingStrategy(abc.ABC):
 
     @abc.abstractmethod
-    def execute(self, candidate_places, transitions):
+    def execute(self, candidate_places, transitions, logger=None):
         """
         Remove redundant places from the found candidate places
         to make the resulting network better interpretable by 
@@ -25,7 +25,9 @@ class NoPostProcessingStrategy(PostProcessingStrategy):
 
 class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions):
+    def execute(self, candidate_places, transitions, logger=None):
+        if (logger is not None):
+            logger.info('Starting Post Processing')
         pre  = {}
         post = {}
         for p in candidate_places:
@@ -64,6 +66,8 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
             
             model.optimize()
             if model.status == GRB.OPTIMAL:
+                if (logger is not None):
+                    logger.info('Removing ' + p_test.name)
                 pruned_set.discard(p_test)
         return pruned_set
 

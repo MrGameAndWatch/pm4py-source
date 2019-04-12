@@ -56,7 +56,7 @@ class EstMiner:
     def post_processing_strategy(self, strategy):
         self.__post_processing_strategy = strategy
 
-    def apply(self, log, parameters=None):
+    def apply(self, log, parameters=None, logger=None):
         """
         This method executes the current version of the est miner configured
         through the builder pattern [1].
@@ -92,10 +92,11 @@ class EstMiner:
             tau=parameters['tau'],
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
-            out_order=out_order
+            out_order=out_order,
+            logger=logger
         )
         transitions = log_util.get_event_labels(log, parameters['key'])
-        resulting_places = self.post_processing_strategy.execute(candidate_places, transitions)
+        resulting_places = self.post_processing_strategy.execute(candidate_places, transitions, logger=logger)
         net, src, sink = self.__construct_net(log, transitions, resulting_places)
         return net, Marking({src: 1}), Marking({sink: 1})
 

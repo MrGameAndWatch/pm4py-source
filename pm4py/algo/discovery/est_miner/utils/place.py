@@ -20,4 +20,8 @@ class Place:
     
     @property
     def name(self):
-        return str(self.input_trans) + ', ' + str(self.output_trans)
+        return '({input_trans} | {output_trans})'.format(
+            input_trans=set(self.input_trans),
+            output_trans=set(self.output_trans)
+        )
+        # return str(self.input_trans) + ', ' + str(self.output_trans)
