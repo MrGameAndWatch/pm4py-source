@@ -8,7 +8,7 @@ from pm4py.algo.discovery.est_miner.hooks.search_strategy \
 import NoSearchStrategy, RestrictedRedTreeDfsStrategy
 from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy \
 import NoPostProcessingStrategy, DeleteDuplicatePlacesPostProcessingStrategy, \
-RemoveImplicitPlacesLPPostProcessingStrategy
+RemoveRedundantPlacesLPPostProcessingStrategy
 from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy \
 import NoPrePruningStrategy, PrePruneUselessPlacesStrategy
 
@@ -96,4 +96,4 @@ class StandardEstMinerBuilder(EstMinerBuilder):
     
     def build_post_processing_strategy(self):
         #self.est_miner.post_processing_strategy = DeleteDuplicatePlacesPostProcessingStrategy()
-        self.est_miner.post_processing_strategy = RemoveImplicitPlacesLPPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveRedundantPlacesLPPostProcessingStrategy()
