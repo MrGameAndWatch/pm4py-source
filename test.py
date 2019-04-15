@@ -6,8 +6,11 @@ from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.petri.check_soundness import check_petri_wfnet_and_soundness
 from pm4py.visualization.petrinet.factory import apply, view, save
+from experiments.logging.logger import RuntimeStatisticsLogger
+import experiments.visualization.charts as charts
 
 def execute_script():
+    path = ''
     # activate logging
     file_handler = logging.FileHandler('test.log', mode='w')
     logger = logging.getLogger('est_miner_logger')
@@ -23,15 +26,11 @@ def execute_script():
     parameters = dict()
     parameters['key'] = 'concept:name'
     parameters['tau'] = 1
-    #resulting_places = standard_est_miner_builder.est_miner.apply(log, parameters=parameters)
-    #for p in resulting_places:
-    #    print('------------')
-    #    print(p.name)
-    #    print('------------')
-    net, im, fm = standard_est_miner_builder.est_miner.apply(log, parameters=parameters, logger=logger)
+    net, im, fm, stat_logger = standard_est_miner_builder.est_miner.apply(log, parameters=parameters, logger=logger)
     gviz = apply(net, initial_marking=im, final_marking=fm)
-    #print(gviz)
     view(gviz)
+    #charts.plot_runtimes(stat_logger, path)
+    #charts.plot_pruned_places(stat_logger, path)
 
 
 if __name__ == "__main__":

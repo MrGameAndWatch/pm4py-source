@@ -7,6 +7,8 @@ from pm4py.objects import petri
 from pm4py.objects.petri.petrinet import Marking
 from pm4py.objects.petri.petrinet import PetriNet
 
+from experiments.logging.logger import RuntimeStatisticsLogger
+
 class EstMiner:
 
     def __init__(self):
@@ -85,7 +87,11 @@ class EstMiner:
         self._ready_for_execution_invariant()
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
+        transitions = log_util.get_event_labels(log, parameters['key'])
         in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
+        stat_logger = RuntimeStatisticsLogger(transitions, in_order, out_order)
+        stat_logger.algo_started()
+        stat_logger.search_started()
         candidate_places = self.search_strategy.execute(
             log=log,
             key=parameters['key'],
@@ -93,12 +99,20 @@ class EstMiner:
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
             out_order=out_order,
+            logger=logger,
+            stat_logger=stat_logger
+        )
+        stat_logger.search_finished()
+        stat_logger.post_processing_started()
+        resulting_places = self.post_processing_strategy.execute(
+            candidate_places, 
+            transitions, 
             logger=logger
         )
-        transitions = log_util.get_event_labels(log, parameters['key'])
-        resulting_places = self.post_processing_strategy.execute(candidate_places, transitions, logger=logger)
+        stat_logger.post_processing_finished()
+        stat_logger.algo_finished()
         net, src, sink = self._construct_net(log, transitions, resulting_places)
-        return net, Marking({src: 1}), Marking({sink: 1})
+        return net, Marking({src: 1}), Marking({sink: 1}), stat_logger
 
     def _construct_net(self, log, transitions, resulting_places):
         transition_dict = dict()
