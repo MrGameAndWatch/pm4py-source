@@ -12,11 +12,20 @@ from experiments.logging.logger import RuntimeStatisticsLogger
 class EstMiner:
 
     def __init__(self):
+        self._name = None
         self._pre_processing_strategy = None
         self._order_calculation_strategy = None
         self._pre_pruning_strategy = None
         self._search_strategy = None
         self._post_processing_strategy = None
+    
+    @property
+    def name(self):
+        return self._name
+    
+    @name.setter
+    def name(self, name):
+        self._name = name
     
     @property
     def pre_processing_strategy(self):
@@ -139,6 +148,7 @@ class EstMiner:
         return net, source, sink
     
     def _ready_for_execution_invariant(self):
+        assert(self.name is not None)
         assert(self.pre_processing_strategy is not None)
         assert(self.order_calculation_strategy is not None)
         assert(self.pre_pruning_strategy is not None)
