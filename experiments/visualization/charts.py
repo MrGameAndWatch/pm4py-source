@@ -7,20 +7,20 @@ from experiments.logging.logger import RuntimeStatisticsLogger
 def plot_runtimes(stat_logger, path):
     runtimes = (
         stat_logger.algo_runtime(unit='ms'), 
-        stat_logger.search_runtime(unit='ms'), 
+        stat_logger.search_runtime(unit='ms'),
+        stat_logger.replay_runtime(unit='ms'),
         stat_logger.post_processing_runtime(unit='ms')
     )
 
-    
-    index = np.arange(3)
+    index = np.arange(len(runtimes))
 
     plt.bar(index, runtimes, align='center')
     plt.xlabel('Phase')
     plt.ylabel('Time (ms)')
     plt.title('Runtime by Phases')
-    plt.xticks(index, ('Algo', 'Search', 'Post-Proc.'))
+    plt.xticks(index, ('Algo', 'Search', 'Replay', 'Post-Proc.'))
 
-    plt.savefig(os.path.join(path, 'runtimes.png'))
+    plt.savefig(path)
 
 def plot_pruned_places(stat_logger, path):
     blue_pruned_places  = stat_logger.num_pruned_blue_places()

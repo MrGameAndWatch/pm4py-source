@@ -77,7 +77,12 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if len(root.output_trans) != 1: # restrict red edges
             return list()
 
+        if(stat_logger is not None):
+            stat_logger.replay_started()
         place_fitness_states = PlaceFitnessEvaluator.evaluate_place_fitness(log, root, tau, key)
+        if(stat_logger is not None):
+            stat_logger.replay_finished()
+
         fitting_places = list()
         if PlaceFitness.FITTING in place_fitness_states:
             if (logger is not None):
@@ -120,7 +125,12 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if pre_pruning_strategy.execute(root):
             return list()
         
+        if(stat_logger is not None):
+            stat_logger.replay_started()
         place_fitness_states = PlaceFitnessEvaluator.evaluate_place_fitness(log, root, tau, key)
+        if (stat_logger is not None):
+            stat_logger.replay_finished()
+
         fitting_places = list()
         if PlaceFitness.FITTING in place_fitness_states:
             if (logger is not None):
@@ -135,7 +145,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 stat_logger.pruned_blue_place(root)
             return fitting_places 
 
-        a_max = max_element(root.input_trans, out_order)
+        a_max = max_element(root.output_trans, out_order)
         larger_elements = copy.copy(out_order.is_larger_relations[a_max])
         while (len(larger_elements) > 0):
             extended_output_trans = list(root.output_trans.copy())

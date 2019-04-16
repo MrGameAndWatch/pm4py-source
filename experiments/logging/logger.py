@@ -26,6 +26,21 @@ class RuntimeStatisticsLogger:
         self._search_finish_time   = None
         self._post_proc_start_time = None
         self._post_proc_fin_time   = None
+        self._time_replaying       = None
+        self._replay_start_time    = None
+    
+    def replay_started(self):
+        self._replay_start_time = self._now()
+    
+    def replay_finished(self):
+        delta = self._now() - self._replay_start_time
+        if (self._time_replaying is None):
+            self._time_replaying = delta
+        else:
+            self._time_replaying += delta
+    
+    def replay_runtime(self, unit='ms'):
+        return time_transformation[unit](self._time_replaying.total_seconds())
     
     def algo_started(self):
         self._algo_start_time = self._now()
