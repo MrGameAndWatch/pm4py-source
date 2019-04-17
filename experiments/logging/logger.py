@@ -95,7 +95,7 @@ class RuntimeStatisticsLogger:
     
     def _blue_subtree_size(self, p):
         a_max = max_element(p.output_trans, self._output_order)
-        missing_output_trans = self._output_order.is_larger_relations[a_max].difference({const.START_ACTIVITY})
+        missing_output_trans = set(self._output_order.is_larger_relations[a_max]).difference({const.START_ACTIVITY})
         return pow(2, len(missing_output_trans)) - 1
     
     def _red_subtree_size(self, p):
@@ -103,7 +103,7 @@ class RuntimeStatisticsLogger:
             return 0
         else:
             a_max = max_element(p.input_trans, self._input_order)
-            missing_input_trans = self._input_order.is_larger_relations[a_max].difference({const.END_ACTIVITY})
+            missing_input_trans = set(self._input_order.is_larger_relations[a_max]).difference({const.END_ACTIVITY})
             return pow(2, len(missing_input_trans)) - 1
 
     def _now(self):
