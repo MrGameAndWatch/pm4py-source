@@ -29,6 +29,46 @@ class NoOrderCalculationStrategy(OrderCalculationStrategy):
         print('Executed Order Calculation')
         return None, None
 
+class MaxCutoffsThroughRelativeTraceFreqOrderStrategy(OrderCalculationStrategy):
+
+    def execute(self, log, key):
+        """
+        A place is more likely to be overfed, if its' input transitions
+        are more likely to occur in a trace, than the place's output
+        transitions.
+
+        A place is more likely to be underfed, if its' output transitions
+        are more likely to occur in a trace, than the place's input transitons.
+        """
+        rel_trace_occ = {}
+        activities = log_util.get_event_labels(log, key)
+        for a in activities:
+            traces = 0
+            for t in log:
+                occ = False
+                for e in t:
+                    if a == e[key]:
+                        occ = True
+                if occ:
+                    traces += 1
+            rel_trace_occ[a] = traces / len(log)
+        print(rel_trace_occ)
+        
+        input_order_builder  = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
+        sorted_rel_trace_occ = sorted(rel_trace_occ.items(), key=lambda x: x[1])
+        for i in range(0, len(sorted_rel_trace_occ)):
+            selection = slice(i + 1, len(sorted_rel_trace_occ), 1)
+            larger_elements_smallest_first = sorted_rel_trace_occ[selection]
+            larger_elements_largest_first  = sorted_rel_trace_occ[selection][::-1]
+            smaller_a = sorted_rel_trace_occ[i][0]
+            if (larger_elements_largest_first is not None):
+                for (larger_a, freq) in larger_elements_largest_first:
+                    input_order_builder.add_relation(larger=smaller_a, smaller=larger_a)
+                for (larger_a, freq) in larger_elements_smallest_first:
+                    output_order_builder.add_relation(larger=smaller_a, smaller=larger_a)
+        return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
+    
 class TraceFrequenciesOrderStrategy(OrderCalculationStrategy):
 
     def execute(self, log, key):
@@ -46,12 +86,14 @@ class TraceFrequenciesOrderStrategy(OrderCalculationStrategy):
         sorted_activities = sorted(trace_freq.items(), key=lambda x: x[1])
         for i in range(0, len(sorted_activities)):
             selection = slice(i+1, len(sorted_activities), 1)
-            larger_elements = sorted_activities[selection][::-1]
+            larger_elements_smallest_first = sorted_activities[selection]
+            larger_elements_largest_first  = sorted_activities[selection][::-1]
             smaller_a = sorted_activities[i][0]
-            if (larger_elements is not None):
-                for (larger_a, freq) in larger_elements:
-                    input_order_builder.add_relation(larger=larger_a, smaller=smaller_a)
-                    output_order_builder.add_relation(larger=larger_a, smaller=smaller_a)
+            if (larger_elements_largest_first is not None):
+                for (larger_a, freq) in larger_elements_largest_first:
+                    input_order_builder.add_relation(larger=smaller_a, smaller=larger_a)
+                for (larger_a, freq) in larger_elements_smallest_first:
+                    output_order_builder.add_relation(larger=smaller_a, smaller=larger_a)
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
     def _get_trace_freq(self, activites, log, key):

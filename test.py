@@ -3,7 +3,7 @@ import logging
 import os
 
 from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
-TraceFrequencyOrderEstMinerBuilder
+MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.petri.check_soundness import check_petri_wfnet_and_soundness
@@ -51,16 +51,20 @@ def execute_miner(est_miner, parameters, folder, log_file_name):
     gviz = apply(net, initial_marking=im, final_marking=fm)
     save(gviz, os.path.join(folder, est_miner.name, result_folder, 'net.png'))
     charts.plot_runtimes(stat_logger, os.path.join(folder, est_miner.name, charts_folder, 'runtimes.pdf'))
+    charts.plot_pruned_places(stat_logger, os.path.join(folder, est_miner.name, charts_folder, 'cutoffs.pdf'))
 
 def construct_est_miners():
     est_miners = list()
     est_miner_director = EstMinerDirector()
     standard_est_miner_builder = StandardEstMinerBuilder()
-    trace_freq_est_miner_builder = TraceFrequencyOrderEstMinerBuilder()
-    est_miner_director.construct(trace_freq_est_miner_builder)
+    max_cutoffs_abs_trace_freq_est_miner_builder = MaxCutoffsAbsFreqEstMinerBuilder()
+    max_cutoffs_rel_trace_freq_est_miner_builder = MaxCutoffsRelTraceFreqEstMinerBuilder()
     est_miner_director.construct(standard_est_miner_builder)
+    est_miner_director.construct(max_cutoffs_abs_trace_freq_est_miner_builder)
+    est_miner_director.construct(max_cutoffs_rel_trace_freq_est_miner_builder)
     est_miners.append(standard_est_miner_builder.est_miner)
-    est_miners.append(trace_freq_est_miner_builder.est_miner)
+    est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
+    est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
     return est_miners
 
 def execute_experiments():

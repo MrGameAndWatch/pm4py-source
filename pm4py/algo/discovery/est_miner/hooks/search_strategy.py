@@ -5,7 +5,7 @@ import logging
 import pm4py.objects.log.util.log as log_util
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.algo.discovery.est_miner.utils.place_fitness import PlaceFitnessEvaluator, PlaceFitness
-from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder, max_element
+from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder, max_element, min_element
 
 class SearchStrategy(abc.ABC):
 
