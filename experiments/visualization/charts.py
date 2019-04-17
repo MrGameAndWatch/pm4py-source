@@ -21,6 +21,7 @@ def plot_runtimes(stat_logger, path):
     plt.xticks(index, ('Algo', 'Search', 'Replay', 'Post-Proc.'))
 
     plt.savefig(path)
+    plt.close()
 
 def plot_pruned_places(stat_logger, path):
     blue_pruned_places  = stat_logger.num_pruned_blue_places()
@@ -41,4 +42,5 @@ def plot_pruned_places(stat_logger, path):
     plt.title('Pruned Places')
     plt.xticks(index, ('All', 'Blue', 'Red'))
 
-    plt.savefig(os.path.join(path, 'pruned_places.png'))
+    plt.savefig(os.path.join(path))
+    plt.close()
