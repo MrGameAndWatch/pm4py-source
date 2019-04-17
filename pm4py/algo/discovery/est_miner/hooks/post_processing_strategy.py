@@ -147,6 +147,7 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
     def is_implicit(self, p_test, transitions, pre, post, pruned_set):
         implicit = False
         model = Model('Implicit Place Test')
+        model.setParam('OutputFlag', 0)
         y = {}
 
         for p in pruned_set.difference({p_test}):
