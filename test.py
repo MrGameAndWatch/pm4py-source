@@ -16,7 +16,9 @@ data_set_paths = [
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'two-trans-set'),
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'repair-set'),
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'reviewing-set'),
-    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'teleclaims-set')
+    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'teleclaims-set'),
+    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-mod-set'),
+    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'road-traffic-fine-set')
 ]
 
 data_set_file_names = [
@@ -24,7 +26,9 @@ data_set_file_names = [
     'TwoActivities.xes',
     'repairExample.xes',
     'reviewing.xes',
-    'teleclaims.xes'
+    'teleclaims.xes',
+    'sepsis.xes',
+    'road-traffic-fines.xes'
 ]
 
 result_folder = 'res'
@@ -50,8 +54,7 @@ def execute_miner(est_miner, parameters, folder, log_file_name):
     net, im, fm, stat_logger = est_miner.apply(log, parameters=parameters, logger=logger)
     gviz = apply(net, initial_marking=im, final_marking=fm)
     save(gviz, os.path.join(folder, est_miner.name, result_folder, 'net.png'))
-    charts.plot_runtimes(stat_logger, os.path.join(folder, est_miner.name, charts_folder, 'runtimes.pdf'))
-    charts.plot_pruned_places(stat_logger, os.path.join(folder, est_miner.name, charts_folder, 'cutoffs.pdf'))
+    return stat_logger
 
 def construct_est_miners():
     est_miners = list()
@@ -67,14 +70,22 @@ def construct_est_miners():
     est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
     return est_miners
 
+def create_statistics(stat_loggers, data_set_path):
+    for stat_logger in stat_loggers:
+        charts.plot_runtimes(stat_logger, os.path.join(data_set_path, stat_logger.est_miner_name, charts_folder, 'runtimes.pdf'))
+        charts.plot_pruned_places(stat_logger, os.path.join(data_set_path, stat_logger.est_miner_name, charts_folder, 'cutoffs.pdf'))
+
 def execute_experiments():
     est_miners = construct_est_miners()
     parameters = dict()
     parameters['key'] = 'concept:name'
     parameters['tau'] = 1
     for i in range(0, len(data_set_paths)):
+        stat_loggers = list()
         for est_miner in est_miners:
-            execute_miner(est_miner, parameters, data_set_paths[i], data_set_file_names[i])
+            stat_logger = execute_miner(est_miner, parameters, data_set_paths[i], data_set_file_names[i])
+            stat_loggers.append(stat_logger)
+        create_statistics(stat_loggers, data_set_paths[i])
 
 if __name__ == "__main__":
     execute_experiments()

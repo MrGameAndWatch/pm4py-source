@@ -98,7 +98,7 @@ class EstMiner:
         log = est_utils.insert_unique_start_and_end_activity(log)
         transitions = log_util.get_event_labels(log, parameters['key'])
         in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
-        stat_logger = RuntimeStatisticsLogger(transitions, in_order, out_order)
+        stat_logger = RuntimeStatisticsLogger(self.name, transitions, in_order, out_order)
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(

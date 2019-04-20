@@ -14,10 +14,11 @@ time_transformation = {
 
 class RuntimeStatisticsLogger:
 
-    def __init__(self, transitions, input_order, output_order):
-        self._transitions = transitions
-        self._input_order = input_order
-        self._output_order = output_order
+    def __init__(self, est_miner_name, transitions, input_order, output_order):
+        self._est_miner_name       = est_miner_name
+        self._transitions          = transitions
+        self._input_order          = input_order
+        self._output_order         = output_order
         self._blue_pruned_places   = list()
         self._red_pruned_places    = list()
         self._algo_start_time      = None
@@ -28,6 +29,10 @@ class RuntimeStatisticsLogger:
         self._post_proc_fin_time   = None
         self._time_replaying       = None
         self._replay_start_time    = None
+    
+    @property
+    def est_miner_name(self):
+        return self._est_miner_name
     
     def replay_started(self):
         self._replay_start_time = self._now()
