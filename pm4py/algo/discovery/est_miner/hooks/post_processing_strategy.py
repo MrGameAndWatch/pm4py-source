@@ -181,6 +181,99 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
             
         return implicit
 
+class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
+
+    def execute(self, candidate_places, transitions, logger=None):
+        if (logger is not None):
+            logger.info('Starting Post Processing')
+
+        pre  = {}
+        post = {}
+        for p in candidate_places:
+            for t in transitions:
+                if t in p.input_trans:
+                    pre[p, t] = 1
+                else:
+                    pre[p, t] = 0
+                
+                if t in p.output_trans:
+                    post[p, t] = 1
+                else:
+                    post[p, t] = 0
+        
+        pruned_set = set(candidate_places)
+        for p_test in candidate_places:
+            if self.is_concurrent_implicit(p_test, transitions, pre, post, pruned_set):
+                if (logger is not None):
+                    logger.info('Removing implicit place ' + p_test.name)
+                pruned_set.discard(p_test)
+        
+        return pruned_set
+    
+    def is_concurrent_implicit(self, p_test, transitions, pre, post, pruned_set):
+        concurrent_implicit = False
+        model = Model('Concurrent Implicit Place Test')
+        model.setParam('OutputFlag', 0)
+        y = {}
+        z = {}
+
+        for p in pruned_set.difference({p_test}):
+            y[p] = model.addVar(
+                vtype=GRB.BINARY, 
+                name='y_({name})'.format(name=p.name)
+            )
+
+            z[p] = model.addVar(
+                vtype=GRB.BINARY,
+                name='z_({name})'.format(name=p.name)
+            )
+
+        mu = model.addVar(
+            vtype=GRB.INTEGER,
+            name='mu'
+        )
+
+        model.update()
+        model.setObjective(
+            mu,
+            GRB.MAXIMIZE
+        )
+
+        # Constraints
+        for t in transitions:
+            model.addConstr(quicksum(y[p] * (post[p, t] - pre[p, t]) for p in pruned_set.difference({p_test})) <= post[p_test, t] - pre[p_test, t])
+        
+        for t in p_test.output_trans:
+            model.addConstr(quicksum(z[p] * pre[p, t] + mu for p in pruned_set.difference({p_test})) >= pre[p_test, t])
+        
+        model.addConstr(mu <= 0)
+
+        model.optimize()
+        if model.status == GRB.OPTIMAL:
+            if model.objVal <= 0:
+                concurrent_implicit = True
+            
+        return concurrent_implicit 
+
+class RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
+
+    def execute(self, candidate_places, transitions, logger=None):
+        structural_impl_places_remover = RemoveImplicitPlacesLPPostProcessingStrategy()
+        concurrent_impl_places_remover = RemoveConcurrentImplicitPlacesPostProcessingStrategy()
+
+        without_structural_impl_places = structural_impl_places_remover.execute(
+            candidate_places,
+            transitions,
+            logger=logger
+        )
+
+        without_concurrent_impl_places = concurrent_impl_places_remover.execute(
+            without_structural_impl_places,
+            transitions,
+            logger=logger
+        )
+        return without_concurrent_impl_places
+
 class RemoveRedundantAndImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
 
     def execute(self, candidate_places, transitions, logger=None):
