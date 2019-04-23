@@ -3,10 +3,10 @@ import abc
 from pm4py.algo.discovery.est_miner.template.est_miner_template import EstMiner
 from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPreProcessingStrategy
 from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy \
-import NoOrderCalculationStrategy, LexicographicalOrderStrategy, TraceFrequenciesOrderStrategy, \
+import NoOrderCalculationStrategy, LexicographicalOrderStrategy, MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy, \
 MaxCutoffsThroughRelativeTraceFreqOrderStrategy
 from pm4py.algo.discovery.est_miner.hooks.search_strategy \
-import NoSearchStrategy, RestrictedRedTreeDfsStrategy
+import NoSearchStrategy, TreeDfsStrategy
 from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy \
 import NoPostProcessingStrategy, DeleteDuplicatePlacesPostProcessingStrategy, \
 RemoveRedundantPlacesLPPostProcessingStrategy, RemoveRedundantAndImplicitPlacesPostProcessingStrategy, \
@@ -105,7 +105,7 @@ class StandardEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
     
     def build_search_strategy(self):
-        self.est_miner.search_strategy = RestrictedRedTreeDfsStrategy()
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
         self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
@@ -119,13 +119,13 @@ class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
 
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = TraceFrequenciesOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
     
     def build_search_strategy(self):
-        self.est_miner.search_strategy = RestrictedRedTreeDfsStrategy()
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
         self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
@@ -145,7 +145,27 @@ class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
     
     def build_search_strategy(self):
-        self.est_miner.search_strategy = RestrictedRedTreeDfsStrategy()
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
+    
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+
+class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder):
+
+    def build_name(self):
+        self.est_miner.name = 'RestrictBlueEdgesAndMaxCutoffsRelTraceFreq'
+    
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+    
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy()
+    
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
+    
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='blue')
     
     def build_post_processing_strategy(self):
         self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()

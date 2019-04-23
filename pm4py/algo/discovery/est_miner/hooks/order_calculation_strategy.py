@@ -69,7 +69,7 @@ class MaxCutoffsThroughRelativeTraceFreqOrderStrategy(OrderCalculationStrategy):
                     output_order_builder.add_relation(larger=smaller_a, smaller=larger_a)
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
     
-class TraceFrequenciesOrderStrategy(OrderCalculationStrategy):
+class MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy(OrderCalculationStrategy):
 
     def execute(self, log, key):
         """

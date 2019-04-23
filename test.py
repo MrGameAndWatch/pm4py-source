@@ -3,7 +3,7 @@ import logging
 import os
 
 from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
-MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder
+MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.petri.check_soundness import check_petri_wfnet_and_soundness
@@ -62,12 +62,15 @@ def construct_est_miners():
     standard_est_miner_builder = StandardEstMinerBuilder()
     max_cutoffs_abs_trace_freq_est_miner_builder = MaxCutoffsAbsFreqEstMinerBuilder()
     max_cutoffs_rel_trace_freq_est_miner_builder = MaxCutoffsRelTraceFreqEstMinerBuilder()
+    max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder = RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder()
     est_miner_director.construct(standard_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_est_miner_builder)
     est_miner_director.construct(max_cutoffs_rel_trace_freq_est_miner_builder)
+    est_miner_director.construct(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder)
     est_miners.append(standard_est_miner_builder.est_miner)
     est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
     est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
+    est_miners.append(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder.est_miner)
     return est_miners
 
 def create_statistics(stat_loggers, data_set_path):
