@@ -27,7 +27,11 @@ class SearchStrategy(abc.ABC):
         """
         pass
 
-class RestrictedRedTreeDfsStrategy(SearchStrategy):
+class TreeDfsStrategy(SearchStrategy):
+    
+    def __init__(self, restricted_edge_type):
+        assert(restricted_edge_type == 'red' or restricted_edge_type == 'blue')
+        self._restricted_edge_type = restricted_edge_type
 
     def execute(
         self,
@@ -37,13 +41,14 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         pre_pruning_strategy,
         in_order,
         out_order,
+        activities,
         logger=None,
         stat_logger=None
     ):
         if (logger is not None):
             logger.info('Starting Search')
         fitting_places = list()
-        roots = self._get_roots(log, key, pre_pruning_strategy) # list of places
+        roots = self._get_roots(activities, key, pre_pruning_strategy) # list of places
         for root in roots:
             fitting_places.extend( self._traverse_red_tree(
                 log, 
@@ -52,7 +57,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )
@@ -63,15 +68,14 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )
         return fitting_places
 
-    def _get_roots(self, log, key, pre_pruning_strategy):
+    def _get_roots(self, activites, key, pre_pruning_strategy):
         roots = list()
-        activites = log_util.get_event_labels(log, key)
         for a1 in activites:
             for a2 in activites:
                 p = Place(frozenset([a1]), frozenset([a2]))
@@ -94,8 +98,9 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
         if pre_pruning_strategy.execute(root):
             return list()
 
-        if len(root.output_trans) != 1: # restrict red edges
-            return list()
+        if self._restricted_edge_type == 'red':
+            if len(root.output_trans) != 1:
+                return list()
 
         if(stat_logger is not None):
             stat_logger.replay_started()
@@ -138,7 +143,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 new_root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )
@@ -149,7 +154,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 new_root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )
@@ -169,15 +174,21 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
     ):
         if pre_pruning_strategy.execute(root):
             return list()
+
+        if self._restricted_edge_type == 'blue':
+            if len(root.output_trans) != 1:
+                return list()
         
         if(stat_logger is not None):
             stat_logger.replay_started()
+
         place_fitness_states = PlaceFitnessEvaluator.evaluate_place_fitness(
             log, 
             root, 
             tau, 
             key
         )
+
         if (stat_logger is not None):
             stat_logger.replay_finished()
 
@@ -212,7 +223,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 new_root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )
@@ -223,7 +234,7 @@ class RestrictedRedTreeDfsStrategy(SearchStrategy):
                 new_root, 
                 in_order, 
                 out_order, 
-                pre_pruning_strategy, 
+                pre_pruning_strategy,
                 logger=logger, 
                 stat_logger=stat_logger
             ) )

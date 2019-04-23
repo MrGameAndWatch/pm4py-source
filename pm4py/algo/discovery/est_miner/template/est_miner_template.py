@@ -99,15 +99,17 @@ class EstMiner:
         transitions = log_util.get_event_labels(log, parameters['key'])
         in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
         stat_logger = RuntimeStatisticsLogger(self.name, transitions, in_order, out_order)
+        optimized_for_replay_log = est_utils.optimize_for_replay(log, parameters['key'])
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(
-            log=log,
+            log=optimized_for_replay_log,
             key=parameters['key'],
             tau=parameters['tau'],
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
             out_order=out_order,
+            activities=transitions,
             logger=logger,
             stat_logger=stat_logger
         )

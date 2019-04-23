@@ -17,12 +17,12 @@ class PlaceFitnessEvaluator:
         fitting_traces = 0
         involved_traces = 0
 
-        for trace in log:
+        for (trace_key, (freq, trace)) in log.items():
             (involved, states) = cls.trace_fitness(trace, place, key)
-            if PlaceFitness.UNDERFED in states: underfed_traces += 1
-            if PlaceFitness.OVERFED  in states: overfed_traces  += 1
-            if PlaceFitness.FITTING  in states: fitting_traces  += 1
-            if involved:                        involved_traces += 1
+            if PlaceFitness.UNDERFED in states: underfed_traces += freq
+            if PlaceFitness.OVERFED  in states: overfed_traces  += freq
+            if PlaceFitness.FITTING  in states: fitting_traces  += freq
+            if involved:                        involved_traces += freq
         
         return cls.place_states(
             place,
