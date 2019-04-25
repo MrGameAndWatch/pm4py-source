@@ -4,7 +4,7 @@ from pm4py.algo.discovery.est_miner.template.est_miner_template import EstMiner
 from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPreProcessingStrategy
 from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy \
 import NoOrderCalculationStrategy, LexicographicalOrderStrategy, MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy, \
-MaxCutoffsThroughRelativeTraceFreqOrderStrategy
+MaxCutoffsThroughRelativeTraceFreqOrderStrategy, MaxRedCutoffsThroughRelativeTraceFreqOrderStrategy
 from pm4py.algo.discovery.est_miner.hooks.search_strategy \
 import NoSearchStrategy, TreeDfsStrategy
 from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy \
@@ -159,7 +159,7 @@ class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder)
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
     
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxRedCutoffsThroughRelativeTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
