@@ -76,8 +76,7 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
         for p in pruned_set.difference({p_test}):
             y[p] = model.addVar(
-                vtype=GRB.BINARY, 
-                name='y_({name})'.format(name=p.name)
+                vtype=GRB.BINARY
             )
         model.update()
         model.setObjective(
@@ -152,13 +151,11 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
         for p in pruned_set.difference({p_test}):
             y[p] = model.addVar(
-                vtype=GRB.BINARY, 
-                name='y_({name})'.format(name=p.name)
+                vtype=GRB.BINARY
             )
 
         mu = model.addVar(
-            vtype=GRB.INTEGER,
-            name='mu'
+            vtype=GRB.INTEGER
         )
 
         model.update()
@@ -219,18 +216,15 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
 
         for p in pruned_set.difference({p_test}):
             y[p] = model.addVar(
-                vtype=GRB.BINARY, 
-                name='y_({name})'.format(name=p.name)
+                vtype=GRB.BINARY
             )
 
             z[p] = model.addVar(
-                vtype=GRB.BINARY,
-                name='z_({name})'.format(name=p.name)
+                vtype=GRB.BINARY
             )
 
         mu = model.addVar(
-            vtype=GRB.INTEGER,
-            name='mu'
+            vtype=GRB.INTEGER
         )
 
         model.update()
