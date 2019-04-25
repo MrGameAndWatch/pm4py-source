@@ -3,7 +3,8 @@ import logging
 import os
 
 from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
-MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder
+MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder, \
+MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
 from pm4py.objects.petri.check_soundness import check_petri_wfnet_and_soundness
@@ -16,7 +17,7 @@ from experiments.logging.logger import RuntimeStatisticsLogger
 import experiments.visualization.charts as charts
 
 data_set_paths = [
-    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'dominiks-log'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'dominiks-log'),
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'artificial-xor-test-set'),
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'two-trans-set'),
     os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'repair-set'),
@@ -27,7 +28,7 @@ data_set_paths = [
 ]
 
 data_set_file_names = [
-    'APM_Assignment_1.xes',
+#    'APM_Assignment_1.xes',
     'Log-dependencyXOR1.xes',
     'TwoActivities.xes',
     'repairExample.xes',
@@ -77,14 +78,17 @@ def construct_est_miners():
     max_cutoffs_abs_trace_freq_est_miner_builder = MaxCutoffsAbsFreqEstMinerBuilder()
     max_cutoffs_rel_trace_freq_est_miner_builder = MaxCutoffsRelTraceFreqEstMinerBuilder()
     max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder = RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder()
+    max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder = MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder()
     est_miner_director.construct(standard_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_est_miner_builder)
     est_miner_director.construct(max_cutoffs_rel_trace_freq_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder)
+    est_miner_director.construct(max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder)
     est_miners.append(standard_est_miner_builder.est_miner)
     est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
     est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
     est_miners.append(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder.est_miner)
+    est_miners.append(max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder.est_miner)
     return est_miners
 
 def create_statistics(stat_loggers, data_set_path):

@@ -100,6 +100,7 @@ class EstMiner:
         in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
         stat_logger = RuntimeStatisticsLogger(self.name, transitions, in_order, out_order)
         optimized_for_replay_log = est_utils.optimize_for_replay(log, parameters['key'])
+        self.pre_pruning_strategy.initialize(optimized_for_replay_log, parameters['key'], transitions)
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(

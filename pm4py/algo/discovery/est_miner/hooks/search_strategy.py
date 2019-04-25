@@ -19,6 +19,7 @@ class SearchStrategy(abc.ABC):
         pre_pruning_strategy,
         in_order,
         out_order,
+        activites,
         logger=None,
         stat_logger=None
     ):
