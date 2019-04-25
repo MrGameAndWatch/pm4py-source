@@ -8,7 +8,7 @@ def plot_runtimes(stat_logger, path):
     runtimes = (
         stat_logger.algo_runtime(unit='ms'), 
         stat_logger.search_runtime(unit='ms'),
-        stat_logger.replay_runtime(unit='ms'),
+    #    stat_logger.replay_runtime(unit='ms'),
         stat_logger.post_processing_runtime(unit='ms')
     )
 
@@ -18,7 +18,26 @@ def plot_runtimes(stat_logger, path):
     plt.xlabel('Phase')
     plt.ylabel('Time (ms)')
     plt.title('Runtime by Phases')
-    plt.xticks(index, ('Algo', 'Search', 'Replay', 'Post-Proc.'))
+    plt.xticks(index, ('Algo', 'Search', 'Post-Proc.'))
+
+    plt.savefig(path)
+    plt.close()
+
+def plot_evaluation(fitness, precision, generalization, simplicity, path):
+    stats = (
+        fitness['log_fitness'],
+        precision,
+        generalization,
+        simplicity
+    )
+    
+    index = np.arange(len(stats))
+
+    plt.bar(index, stats, align='center')
+    plt.xlabel('Metric')
+    plt.ylabel('Value')
+    plt.title('Evaluation Metrics')
+    plt.xticks(index, ('Fit.', 'Prec.', 'Gener.', 'Simpl.'))
 
     plt.savefig(path)
     plt.close()
