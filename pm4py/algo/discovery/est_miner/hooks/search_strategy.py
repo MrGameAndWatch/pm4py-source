@@ -1,6 +1,7 @@
 import abc
 import copy
 import logging
+import multiprocessing
 
 import pm4py.objects.log.util.log as log_util
 from pm4py.algo.discovery.est_miner.utils.place import Place
@@ -32,6 +33,43 @@ class TreeDfsStrategy(SearchStrategy):
     def __init__(self, restricted_edge_type):
         assert(restricted_edge_type == 'red' or restricted_edge_type == 'blue')
         self._restricted_edge_type = restricted_edge_type
+    
+    def process_root(
+        self,
+        log,
+        tau,
+        key,
+        root,
+        in_order,
+        out_order,
+        pre_pruning_strategy,
+        logger=None,
+        stat_logger=None
+    ):
+        fitting_places = list()
+        fitting_places.extend(self._traverse_red_tree(
+            log, 
+            tau, 
+            key, 
+            root, 
+            in_order, 
+            out_order, 
+            pre_pruning_strategy,
+            logger=logger, 
+            stat_logger=stat_logger
+        ))
+        fitting_places.extend(self._traverse_blue_tree(
+            log, 
+            tau, 
+            key, 
+            root, 
+            in_order, 
+            out_order, 
+            pre_pruning_strategy,
+            logger=logger, 
+            stat_logger=stat_logger
+        ))
+        return fitting_places
 
     def execute(
         self,
@@ -47,32 +85,15 @@ class TreeDfsStrategy(SearchStrategy):
     ):
         if (logger is not None):
             logger.info('Starting Search')
-        fitting_places = list()
-        roots = self._get_roots(activities, key, pre_pruning_strategy) # list of places
+        roots = self._get_roots(activities, key, pre_pruning_strategy)
+        args = list()
         for root in roots:
-            fitting_places.extend( self._traverse_red_tree(
-                log, 
-                tau, 
-                key, 
-                root, 
-                in_order, 
-                out_order, 
-                pre_pruning_strategy,
-                logger=logger, 
-                stat_logger=stat_logger
-            ) )
-            fitting_places.extend( self._traverse_blue_tree(
-                log, 
-                tau, 
-                key, 
-                root, 
-                in_order, 
-                out_order, 
-                pre_pruning_strategy,
-                logger=logger, 
-                stat_logger=stat_logger
-            ) )
-        return fitting_places
+            args.append( (log, tau, key, root, in_order, out_order, pre_pruning_strategy) )
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            fitting_places = pool.starmap(self.process_root, args)
+        
+        flat_result = [p for fitting in fitting_places for p in fitting]
+        return flat_result
 
     def _get_roots(self, activites, key, pre_pruning_strategy):
         roots = list()
