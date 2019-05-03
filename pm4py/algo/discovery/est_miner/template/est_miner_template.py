@@ -104,7 +104,7 @@ class EstMiner:
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(
-            log=optimized_for_replay_log,
+            log=log,
             key=parameters['key'],
             tau=parameters['tau'],
             pre_pruning_strategy=self.pre_pruning_strategy,
@@ -133,11 +133,11 @@ class EstMiner:
             transition_dict[transitions[i]] = PetriNet.Transition(transitions[i], transitions[i])
             net.transitions.add(transition_dict[transitions[i]])
         
-        source = PetriNet.Place('start')
+        source = PetriNet.Place('startPlace')
         net.places.add(source)
         petri.utils.add_arc_from_to(source, transition_dict[const.START_ACTIVITY], net)
 
-        sink = PetriNet.Place('end')
+        sink = PetriNet.Place('endPlace')
         net.places.add(sink)
         petri.utils.add_arc_from_to(transition_dict[const.END_ACTIVITY], sink, net)
 
