@@ -78,10 +78,10 @@ class TreeDfsStrategy(SearchStrategy):
         logger=None,
         stat_logger=None
     ):
-#        fitting_places = list()
+        fitting_places = list()
         args = list()
         for root in roots:
-#            fitting_places.extend(self._traverse_place(log, key, tau, root, in_order, out_order, pre_pruning_strategy, logger=logger))
+            #fitting_places.extend(self._traverse_place(log, key, tau, root, in_order, out_order, pre_pruning_strategy, logger=logger))
             args.append( (log, key, tau, root, in_order, out_order, pre_pruning_strategy) )
         with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
             fitting_places = pool.starmap(self._traverse_place, args)
@@ -124,14 +124,24 @@ class TreeDfsStrategy(SearchStrategy):
                 logger.info('    Place is fitting.')
             fitting_places.append(place)
         
-        if PlaceFitness.OVERFED not in place_fitness_states: # nodes attached by blue edge
+        if (
+            PlaceFitness.OVERFED not in place_fitness_states 
+            or (self._restricted_edge_type == 'red' 
+            and self._cant_prune_red_subtrees(place, out_order))
+        ): # nodes attached by red edge
             child_places.extend(self._get_red_child_places(place, in_order))
-        if PlaceFitness.UNDERFED not in place_fitness_states: # nodes attached by red edge
+        if (
+            PlaceFitness.UNDERFED not in place_fitness_states
+            or (self._restricted_edge_type == 'blue'
+            and self._cant_prune_blue_subtrees(place, in_order))
+        ): # nodes attached by blue edge
             child_places.extend(self._get_blue_child_places(place, out_order))
         
         if logger is not None:
             if PlaceFitness.OVERFED in place_fitness_states:
                 logger.info('    Place is overfed.')
+            if PlaceFitness.UNDERFED in place_fitness_states:
+                logger.info('    Place is underfed.')
             logger.info('    ' + str(len(child_places)) + ' child places.')
             for p in child_places:
                 logger.info('    Child Place: ' + p.name)
@@ -149,6 +159,14 @@ class TreeDfsStrategy(SearchStrategy):
                 stat_logger=stat_logger
             ))
         return fitting_places
+    
+    def _cant_prune_red_subtrees(self, place, out_order):
+        max_output_activity = max_element(place.output_trans, out_order)
+        return len(out_order.is_larger_relations[max_output_activity]) > 0
+    
+    def _cant_prune_blue_subtrees(self, place, in_order):
+        max_input_activity = max_element(place.input_trans, in_order)
+        return len(in_order.is_larger_relations[max_input_activity]) > 0
     
     def _get_red_child_places(self, place, in_order):
         if (self._restricted_edge_type == 'red'):
