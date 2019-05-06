@@ -3,6 +3,8 @@ from collections import defaultdict
 
 from gurobipy import *
 
+from progress.bar import ShadyBar
+
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.algo.discovery.est_miner.utils import constants as const
 
@@ -135,11 +137,14 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
                     post[p, t] = 0
         
         pruned_set = set(candidate_places)
+        bar = ShadyBar('Removing Structural Implicit Places', max=len(candidate_places))
         for p_test in candidate_places:
             if self.is_implicit(p_test, transitions, pre, post, pruned_set):
                 if (logger is not None):
                     logger.info('Removing implicit place ' + p_test.name)
                 pruned_set.discard(p_test)
+            bar.next()
+        bar.finish()
         
         return pruned_set
         
@@ -199,11 +204,14 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
                     post[p, t] = 0
         
         pruned_set = set(candidate_places)
+        bar = ShadyBar('Removing Concurrent Implicit Places', max=len(candidate_places))
         for p_test in candidate_places:
             if self.is_concurrent_implicit(p_test, transitions, pre, post, pruned_set):
                 if (logger is not None):
                     logger.info('Removing implicit place ' + p_test.name)
                 pruned_set.discard(p_test)
+            bar.next()
+        bar.finish()
         
         return pruned_set
     
