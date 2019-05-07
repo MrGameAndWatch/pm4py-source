@@ -5,8 +5,9 @@ from pm4py.algo.discovery.est_miner.template.est_miner_template import EstMiner
 from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPreProcessingStrategy
 
 from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy \
-import NoOrderCalculationStrategy, LexicographicalOrderStrategy, MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy, \
-MaxCutoffsThroughRelativeTraceFreqOrderStrategy, MaxRedCutoffsThroughRelativeTraceFreqOrderStrategy
+import NoOrderCalculationStrategy, LexicographicalOrderStrategy, MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy, \
+MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy, MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy, \
+MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy
 
 from pm4py.algo.discovery.est_miner.hooks.search_strategy \
 import NoSearchStrategy, TreeDfsStrategy, RefinementSearch
@@ -124,7 +125,7 @@ class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
 
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
@@ -144,7 +145,7 @@ class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
 
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxCutoffsThroughRelativeTraceFreqOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
@@ -164,7 +165,7 @@ class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder)
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
     
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxRedCutoffsThroughRelativeTraceFreqOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
@@ -184,7 +185,7 @@ class MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
 
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxCutoffsThroughRelativeTraceFreqOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = HeuristicPrePrune()
@@ -204,7 +205,7 @@ class AlphaMinerRefinementSearchEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
 
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = MaxCutoffsThroughAbsTraceFrequenciesOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
@@ -224,7 +225,7 @@ class PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder(EstMinerBuilder):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
     
     def build_order_calculation_strategy(self):
-        self.est_miner.order_calculation_strategy = LexicographicalOrderStrategy()#MaxCutoffsThroughRelativeTraceFreqOrderStrategy()
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy()
     
     def build_pre_pruning_strategy(self):
         self.est_miner.pre_pruning_strategy = ImportantPlacesPrePruning()
