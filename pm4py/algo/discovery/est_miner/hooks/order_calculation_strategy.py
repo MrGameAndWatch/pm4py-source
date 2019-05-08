@@ -32,6 +32,19 @@ def get_rel_trace_occ(log, key, activities):
         relative_trace_occ[a] = traces / len(log)
     return relative_trace_occ
 
+def get_avg_trace_occ(log, key, activities):
+    avg_trace_occ = {}
+    for a in activities:
+        avg_occ = 0
+        for t in log:
+            occ = 0
+            for e in t:
+                if a == e[key]:
+                    occ += 1
+            avg_occ += (occ / len(t))
+        avg_trace_occ[a] = avg_occ / len(log)
+    return avg_trace_occ
+
 class OrderCalculationStrategy(abc.ABC):
 
     @abc.abstractmethod
@@ -56,6 +69,26 @@ class NoOrderCalculationStrategy(OrderCalculationStrategy):
     def execute(self, log):
         print('Executed Order Calculation')
         return None, None
+
+class MaxOverfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
+
+    def execute(self, log, key):
+        activities = log_util.get_event_labels(log, key)
+        avg_trace_occ = get_avg_trace_occ(log, key, activities)
+
+        input_order_builder  = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
+        sorted_avg_trace_occ = sorted(avg_trace_occ.items(), key=lambda x: x[1])
+
+        for i in reversed(range(len(sorted_avg_trace_occ))):
+            for j in reversed(range(i)):
+                output_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
+
+        for i in range(len(sorted_avg_trace_occ)):
+            for j in range(i):
+                input_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
+
+        return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
 class MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy):
 
@@ -106,6 +139,68 @@ class MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStra
         for i in range(len(sorted_rel_trace_occ)):
             for j in range(i):
                 input_order_builder.add_relation(larger=sorted_rel_trace_occ[j][0], smaller=sorted_rel_trace_occ[i][0])
+
+        return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
+
+class MaxUnderfedPlacesThroughAFOIOrderStrategy(OrderCalculationStrategy):
+
+    def execute(self, log, key):
+        activities = log_util.get_event_labels(log, key)
+        avg_first_occ_index = self._avg_first_occ_index(log, key, activities)
+
+        input_order_builder = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
+        sorted_avg_first_occ_index = sorted(avg_first_occ_index.items(), key=lambda x: x[1])
+
+        for i in range(len(sorted_avg_first_occ_index)):
+            for j in range(i+1, len(sorted_avg_first_occ_index)):
+                output_order_builder.add_relation(larger=sorted_avg_first_occ_index[j][0], smaller=sorted_avg_first_occ_index[i][0])
+        
+        for i in reversed(range(len(sorted_avg_first_occ_index))):
+            for j in reversed(range(i)):
+                input_order_builder.add_relation(larger=sorted_avg_first_occ_index[j][0], smaller=sorted_avg_first_occ_index[i][0])
+        
+        return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
+
+    def _avg_first_occ_index(self, log, key, activites):
+        avg_first_occ_index = dict()
+        for a in activites:
+            index_sum = 0
+            traces = 0
+            for t in log:
+                occ = False
+                index = 0
+                for e in t:
+                    if a == e[key]:
+                        if not occ:
+                            index_sum += index
+                            occ = True
+                    index += 1
+                if occ:
+                    traces += 1
+            avg_first_occ_index[a] = (index_sum / traces)
+        return avg_first_occ_index
+
+class MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
+
+    def execute(self, log, key):
+        activities = log_util.get_event_labels(log, key)
+        avg_trace_occ = get_avg_trace_occ(log, key, activities)
+        
+        input_order_builder  = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
+        sorted_avg_trace_occ = sorted(avg_trace_occ.items(), key=lambda x: x[1])
+        # Build input order
+        # most frequent element is minimal
+        for i in reversed(range(len(sorted_avg_trace_occ))):
+            for j in reversed(range(i)):
+                input_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
+        
+        # Build output order
+        # least frequent element is minimal
+        for i in range(len(sorted_avg_trace_occ)):
+            for j in range(i):
+                output_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
 
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
