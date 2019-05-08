@@ -4,6 +4,29 @@ import os
 
 from experiments.logging.logger import RuntimeStatisticsLogger
 
+def plot_runtime_comparison(stat_loggers, path):
+    algo_runtimes = list()
+    for loggers in stat_loggers.values():
+        runtime = 0
+        for stat_logger in loggers:
+            runtime += stat_logger.algo_runtime(unit='s')
+        runtime = runtime / len(loggers)
+        algo_runtimes.append(runtime)
+
+    runtimes = tuple(algo_runtimes)
+    ticks    = tuple(stat_loggers.keys())
+
+    index = np.arange(len(runtimes))
+
+    plt.bar(index, runtimes, align='center')
+    plt.xlabel('Miner')
+    plt.ylabel('Runtime (s)')
+    plt.title('Runtimes')
+    plt.xticks(index, ticks, rotation='vertical')
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+
 def plot_runtimes(stat_logger, path):
     runtimes = (
         stat_logger.algo_runtime(unit='ms'), 
