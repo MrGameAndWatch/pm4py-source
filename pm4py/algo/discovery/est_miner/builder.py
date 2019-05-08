@@ -7,7 +7,8 @@ from pm4py.algo.discovery.est_miner.hooks.pre_processing_strategy import NoPrePr
 from pm4py.algo.discovery.est_miner.hooks.order_calculation_strategy \
 import NoOrderCalculationStrategy, LexicographicalOrderStrategy, MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy, \
 MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy, MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy, \
-MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy
+MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy, MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy, \
+MaxUnderfedPlacesThroughAFOIOrderStrategy
 
 from pm4py.algo.discovery.est_miner.hooks.search_strategy \
 import NoSearchStrategy, TreeDfsStrategy, RefinementSearch
@@ -79,7 +80,7 @@ class EstMinerBuilder(abc.ABC):
 class TestEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'TestEstMiner'
+        self.est_miner.name = 'TEM'
 
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -99,7 +100,7 @@ class TestEstMinerBuilder(EstMinerBuilder):
 class StandardEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'OriginalPaperEstMiner'
+        self.est_miner.name = 'OPEM'
 
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -119,7 +120,7 @@ class StandardEstMinerBuilder(EstMinerBuilder):
 class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'MaxCutoffsAbsFreq'
+        self.est_miner.name = 'MUAEM'
 
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -139,7 +140,7 @@ class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
 class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'MaxCutoffsRelTraceFreq'
+        self.est_miner.name = 'MUREM'
     
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -156,10 +157,50 @@ class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
     def build_post_processing_strategy(self):
         self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
 
+class MaxUnderfedAvgFirstOccIndexEstMinerBuilder(EstMinerBuilder):
+
+    def build_name(self):
+        self.est_miner.name = 'MUAFOIEM'
+    
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+    
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAFOIOrderStrategy()
+    
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
+    
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
+    
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+
+class MaxUnderfedAvgTraceOccEstMinerBuilder(EstMinerBuilder):
+
+    def build_name(self):
+        self.est_miner.name = 'MUATOEM'
+    
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+    
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy()
+    
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = PrePruneUselessPlacesStrategy()
+    
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
+    
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+
 class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'RestrictBlueEdgesAndMaxCutoffsRelTraceFreq'
+        self.est_miner.name = 'MOAEM'
     
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -179,7 +220,7 @@ class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder)
 class MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'MaxCutoffsRelTraceFreqHeuristicPruning'
+        self.est_miner.name = 'MURHPEM'
     
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -199,7 +240,7 @@ class MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder(EstMinerBuilder):
 class AlphaMinerRefinementSearchEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'AlphaMinerRefinementSearch'
+        self.est_miner.name = 'AMRS'
     
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
@@ -219,7 +260,7 @@ class AlphaMinerRefinementSearchEstMinerBuilder(EstMinerBuilder):
 class PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'PlaceInterestPrePruningRestrictRedEdges'
+        self.est_miner.name = 'PIPPMUEM'
     
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
