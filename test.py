@@ -29,7 +29,11 @@ data_set_paths = [
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'teleclaims-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-mod-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'road-traffic-fine-set'),
-#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-pre-processed')
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-pre-processed'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'basILP40'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'LogXOR-AND'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'LogXOR2'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'alpha++-fail1'),
 ]
 
 data_set_file_names = [
@@ -41,7 +45,11 @@ data_set_file_names = [
 #    'teleclaims.xes',
 #    'sepsis.xes',
 #    'road-traffic-fines.xes',
-#    'Sepsis-doubletracesout.xes'
+#    'Sepsis-doubletracesout.xes',
+#    'test40.xes',
+#    'Log-xor-and.xes',
+#    'Log-dependencyXOR2.xes',
+#    'alpha++fail1.xes',
 ]
 
 tau_folder    = 'tau={tau}'
@@ -49,6 +57,8 @@ result_folder = 'res'
 log_folder    = 'out-logs'
 charts_folder = 'charts'
 statistics_file_name = 'statistics.csv'
+
+NUM_RUNS = 5
 
 def evaluate_net(log, net, initial_marking, final_marking, path, est_miner_name):
     fitness = fitness_factory.apply(log, net, initial_marking, final_marking)
@@ -118,14 +128,14 @@ def construct_est_miners():
     est_miner_director.construct(max_underfed_avg_trace_occ_est_miner_builder)
     est_miner_director.construct(max_underfed_avg_first_occ_index_est_miner_builder)
 
-    est_miners.append(standard_est_miner_builder.est_miner)
-    est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
-    est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
+    #est_miners.append(standard_est_miner_builder.est_miner)
+    #est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
+    #est_miners.append(max_cutoffs_rel_trace_freq_est_miner_builder.est_miner)
     #est_miners.append(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder.est_miner)
     #est_miners.append(max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder.est_miner)
     #est_miners.append(alpha_miner_refinment_search_est_miner_builder.est_miner)
-    est_miners.append(max_underfed_avg_trace_occ_est_miner_builder.est_miner)
-    est_miners.append(max_underfed_avg_first_occ_index_est_miner_builder.est_miner)
+    #est_miners.append(max_underfed_avg_trace_occ_est_miner_builder.est_miner)
+    #est_miners.append(max_underfed_avg_first_occ_index_est_miner_builder.est_miner)
     est_miners.append(interest_places_pre_pruning_est_miner_builder.est_miner)
 
     return est_miners
@@ -135,7 +145,7 @@ def create_dataset_charts(stat_loggers, path):
     charts.plot_runtime_comparison(stat_loggers, os.path.join(path, charts_folder, 'runtime_comp.pdf'))
     charts.plot_runtime_comparison(stat_loggers, os.path.join(path, charts_folder, 'runtime_comp.png'))
 
-def save_stats_to_file(stat_loggers, path):
+def save_stats_to_file(stat_logger, path):
     if not os.path.exists(path):
         os.makedirs(path)
     column_names = [
@@ -146,16 +156,13 @@ def save_stats_to_file(stat_loggers, path):
         'PrunedPlaces'
     ]
 
-    rows = []
-    for loggers in stat_loggers.values():
-        for logger in loggers:
-            row = []
-            row.append(logger.est_miner_name)
-            row.append(logger.algo_runtime(unit='s'))
-            row.append(logger.search_runtime(unit='s'))
-            row.append(logger.post_processing_runtime(unit='s'))
-            row.append(logger.total_pruned_places())
-            rows.append(row)
+
+    row = []
+    row.append(stat_logger.est_miner_name)
+    row.append(stat_logger.algo_runtime(unit='s'))
+    row.append(stat_logger.search_runtime(unit='s'))
+    row.append(stat_logger.post_processing_runtime(unit='s'))
+    row.append(stat_logger.total_pruned_places())
     
     if not os.path.isfile(os.path.join(path, statistics_file_name)):
         with open(os.path.join(path, statistics_file_name), 'w') as file:
@@ -165,8 +172,7 @@ def save_stats_to_file(stat_loggers, path):
 
     with open(os.path.join(path, 'statistics.csv'), 'a') as file:
         writer = csv.writer(file)
-        for row in rows:
-            writer.writerow(row)
+        writer.writerow(row)
     file.close()
 
 def execute_experiments():
@@ -180,11 +186,12 @@ def execute_experiments():
         tau_sub_folder = tau_folder.format(tau=parameters['tau'])
         for est_miner in est_miners:
             stat_loggers[est_miner.name] = list()
-            for j in range(10):
+            for j in range(NUM_RUNS):
                 stat_logger = execute_miner(est_miner, parameters, data_set_paths[i], data_set_file_names[i])
-                stat_loggers[est_miner.name].append(stat_logger)
-        create_dataset_charts(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder))
-        save_stats_to_file(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder, 'stats'))
+                save_stats_to_file(stat_logger, os.path.join(data_set_paths[i], tau_sub_folder, 'stats'))
+                #stat_loggers[est_miner.name].append(stat_logger)
+        #create_dataset_charts(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder))
+        #save_stats_to_file(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder, 'stats'))
 
 if __name__ == "__main__":
     execute_experiments()
