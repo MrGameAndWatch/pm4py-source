@@ -17,12 +17,13 @@ class SearchStrategy(abc.ABC):
     def execute(
         self,
         log,
-        key,
         tau,
         pre_pruning_strategy,
         in_order,
         out_order,
         activities,
+        start_activity,
+        end_activity,
         logger=None,
         stat_logger=None
     ):
@@ -36,12 +37,12 @@ class TreeDfsStrategy(SearchStrategy):
     class RootExtractor:
 
         @classmethod
-        def get_roots(cls, activities, key, pre_pruning_strategy):
+        def get_roots(cls, activities, start_activity, end_activity, pre_pruning_strategy):
             roots = set()
             for a1 in activities:
                 for a2 in activities:
-                    p = Place(frozenset([a1]), frozenset([a2]))
-                    if not pre_pruning_strategy.execute(p):
+                    p = Place(a1, a2, 1, 1)
+                    if not pre_pruning_strategy.execute(p, start_activity, end_activity):
                         roots.add(p)
             return roots
     
@@ -49,19 +50,20 @@ class TreeDfsStrategy(SearchStrategy):
         assert(restricted_edge_type == 'red' or restricted_edge_type == 'blue')
         self._restricted_edge_type = restricted_edge_type
     
-    def execute(self, log, key, tau, pre_pruning_strategy, in_order, out_order, activities, logger=None, stat_logger=None):
+    def execute(self, log, tau, pre_pruning_strategy, in_order, out_order, activities, start_activity, end_activity, logger=None, stat_logger=None):
         if (logger is not None):
             logger.info('Starting Search')
-        log = est_utils.optimize_for_replay(log, key)
-        roots = self.RootExtractor.get_roots(activities, key, pre_pruning_strategy)
+        roots = self.RootExtractor.get_roots(activities, start_activity, end_activity, pre_pruning_strategy)
         return self.traverse_roots(
             roots,
             log,
-            key,
             tau,
             in_order,
             out_order,
             pre_pruning_strategy,
+            activities,
+            start_activity,
+            end_activity,
             logger=logger,
             stat_logger=stat_logger
         )
@@ -70,19 +72,21 @@ class TreeDfsStrategy(SearchStrategy):
         self,
         roots,
         log,
-        key,
         tau,
         in_order,
         out_order,
         pre_pruning_strategy,
+        activities,
+        start_activity,
+        end_activity,
         logger=None,
         stat_logger=None
     ):
         fitting_places = list()
         args = list()
         for root in roots:
-            #fitting_places.extend(self._traverse_place(log, key, tau, root, in_order, out_order, pre_pruning_strategy, logger=logger))
-            args.append( (log, key, tau, root, in_order, out_order, pre_pruning_strategy) )
+            #fitting_places.extend(self._traverse_place(log, tau, root, in_order, out_order, pre_pruning_strategy, activities, start_activity, end_activity, logger=logger, stat_logger=stat_logger))
+            args.append( (log, tau, root, in_order, out_order, pre_pruning_strategy, activities, start_activity, end_activity) )
         with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
             fitting_places = pool.starmap(self._traverse_place, args)
         
@@ -93,19 +97,21 @@ class TreeDfsStrategy(SearchStrategy):
     def _traverse_place(
         self,
         log,
-        key,
         tau,
         place,
         in_order,
         out_order,
         pre_pruning_strategy,
+        activities,
+        start_activity,
+        end_activity,
         logger=None,
         stat_logger=None
     ):
         if logger is not None:
             logger.info('Checking node ' + place.name)
         
-        if pre_pruning_strategy.execute(place):
+        if pre_pruning_strategy.execute(place, start_activity, end_activity):
             if logger is not None:
                 logger.info('    Pre-pruning the node.')
             return list()
@@ -114,8 +120,7 @@ class TreeDfsStrategy(SearchStrategy):
         place_fitness_states = PlaceFitnessEvaluator.evaluate_place_fitness(
             log, 
             place, 
-            tau, 
-            key
+            tau
         )
 
         child_places = list()
@@ -127,15 +132,19 @@ class TreeDfsStrategy(SearchStrategy):
         if (
             PlaceFitness.OVERFED not in place_fitness_states 
             or (self._restricted_edge_type == 'red' 
-            and self._cant_prune_red_subtrees(place, out_order))
+            and self._cant_prune_red_subtrees(place, out_order, activities))
         ): # nodes attached by red edge
-            child_places.extend(self._get_red_child_places(place, in_order))
+            child_places.extend(self._get_red_child_places(place, in_order, activities))
+        elif stat_logger is not None:
+            stat_logger.pruned_red_subtree(place)
         if (
             PlaceFitness.UNDERFED not in place_fitness_states
             or (self._restricted_edge_type == 'blue'
-            and self._cant_prune_blue_subtrees(place, in_order))
+            and self._cant_prune_blue_subtrees(place, in_order, activities))
         ): # nodes attached by blue edge
-            child_places.extend(self._get_blue_child_places(place, out_order))
+            child_places.extend(self._get_blue_child_places(place, out_order, activities))
+        elif stat_logger is not None:
+            stat_logger.pruned_blue_subtree(place)
         
         if logger is not None:
             if PlaceFitness.OVERFED in place_fitness_states:
@@ -149,51 +158,55 @@ class TreeDfsStrategy(SearchStrategy):
         for p in child_places:
             fitting_places.extend(self._traverse_place(
                 log,
-                key,
                 tau,
                 p,
                 in_order,
                 out_order,
                 pre_pruning_strategy,
+                activities,
+                start_activity,
+                end_activity,
                 logger=logger,
                 stat_logger=stat_logger
             ))
         return fitting_places
     
-    def _cant_prune_red_subtrees(self, place, out_order):
-        max_output_activity = max_element(place.output_trans, out_order)
+    def _cant_prune_red_subtrees(self, place, out_order, activities):
+        max_output_activity = max_element(activities, place.output_trans, out_order)
         return len(out_order.is_larger_relations[max_output_activity]) > 0
     
-    def _cant_prune_blue_subtrees(self, place, in_order):
-        max_input_activity = max_element(place.input_trans, in_order)
+    def _cant_prune_blue_subtrees(self, place, in_order, activities):
+        max_input_activity = max_element(place.input_trans, in_order, activities)
         return len(in_order.is_larger_relations[max_input_activity]) > 0
     
-    def _get_red_child_places(self, place, in_order):
+    def _get_red_child_places(self, place, in_order, activities):
         if (self._restricted_edge_type == 'red'):
-            if (len(place.output_trans) > 1):
+            if (place.num_output_trans > 1):
                 return list()
         
         child_places = list()
-        max_input_activity = max_element(place.input_trans, in_order)
+        max_input_activity = max_element(activities, place.input_trans, in_order)
         higher_ordered_activities = in_order.is_larger_relations[max_input_activity]
         for a in higher_ordered_activities:
-            new_input_trans = list(place.input_trans.copy())
-            new_input_trans.append(a)
-            child_places.append(Place(frozenset(new_input_trans), place.output_trans.copy()))
+            new_input_trans = copy.copy(place.input_trans)
+            new_input_trans = new_input_trans | a
+            num_input_trans = copy.copy(place.num_input_trans) + 1
+            child_places.append(Place(new_input_trans, copy.copy(place.output_trans), num_input_trans, copy.copy(place.num_output_trans)))
         return child_places
     
-    def _get_blue_child_places(self, place, out_order):
+    def _get_blue_child_places(self, place, out_order, activities):
         if (self._restricted_edge_type == 'blue'):
-            if (len(place.input_trans) > 1):
+            if (place.num_input_trans > 1):
                 return list()
         
         child_places = list()
-        max_output_activity = max_element(place.output_trans, out_order)
+        max_output_activity = max_element(activities, place.output_trans, out_order)
         higher_ordered_activities = out_order.is_larger_relations[max_output_activity]
         for a in higher_ordered_activities:
-            new_output_trans = list(place.output_trans.copy())
-            new_output_trans.append(a)
-            child_places.append(Place(place.input_trans.copy(), frozenset(new_output_trans)))
+            new_output_trans = copy.copy(place.output_trans)
+            new_output_trans = new_output_trans | a
+            num_output_trans = copy.copy(place.num_output_trans) + 1
+            child_places.append(Place(copy.copy(place.input_trans), new_output_trans, copy.copy(place.num_input_trans), num_output_trans))
         return child_places
 
 class RefinementSearch(SearchStrategy):

@@ -96,42 +96,42 @@ class EstMiner:
         self._ready_for_execution_invariant()
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
-        transitions = log_util.get_event_labels(log, parameters['key'])
-        in_order, out_order = self.order_calculation_strategy.execute(log, parameters['key'])
-        stat_logger = RuntimeStatisticsLogger(self.name, transitions, in_order, out_order)
-        optimized_for_replay_log = est_utils.optimize_for_replay(log, parameters['key'])
-        self.pre_pruning_strategy.initialize(optimized_for_replay_log, parameters['key'], transitions)
+        optimized_for_replay_log, activities, start_activity, end_activity, reverse_mapping = est_utils.optimize_for_replay(log, parameters['key'])
+        in_order, out_order = self.order_calculation_strategy.execute(optimized_for_replay_log, activities)
+        stat_logger = RuntimeStatisticsLogger(self.name, activities, in_order, out_order)
+        self.pre_pruning_strategy.initialize(optimized_for_replay_log, activities)
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(
-            log=log,
-            key=parameters['key'],
+            log=optimized_for_replay_log,
             tau=parameters['tau'],
             pre_pruning_strategy=self.pre_pruning_strategy,
             in_order=in_order,
             out_order=out_order,
-            activities=transitions,
+            activities=activities,
+            start_activity=start_activity,
+            end_activity=end_activity,
             logger=logger,
             stat_logger=stat_logger
         )
         stat_logger.search_finished()
         stat_logger.post_processing_started()
         resulting_places = self.post_processing_strategy.execute(
-            candidate_places, 
-            transitions, 
+            candidate_places,
+            activities,
             logger=logger
         )
         stat_logger.post_processing_finished()
         stat_logger.algo_finished()
-        net, src, sink = self._construct_net(log, transitions, resulting_places)
+        net, src, sink = self._construct_net(log, activities, resulting_places, reverse_mapping)
         return net, Marking({src: 1}), Marking({sink: 1}), stat_logger
 
-    def _construct_net(self, log, transitions, resulting_places):
+    def _construct_net(self, log, activities, resulting_places, reverse_mapping):
         transition_dict = dict()
         net = PetriNet('est_miner_net' + str(time.time()))
-        for i in range(0, len(transitions)):
-            transition_dict[transitions[i]] = PetriNet.Transition(transitions[i], transitions[i])
-            net.transitions.add(transition_dict[transitions[i]])
+        for a in activities:
+            transition_dict[reverse_mapping[a]] = PetriNet.Transition(reverse_mapping[a], reverse_mapping[a])
+            net.transitions.add(transition_dict[reverse_mapping[a]])
         
         source = PetriNet.Place('startPlace')
         net.places.add(source)
@@ -144,10 +144,11 @@ class EstMiner:
         for p in resulting_places:
             place = PetriNet.Place(p.name)
             net.places.add(place)
-            for in_trans in p.input_trans:
-                petri.utils.add_arc_from_to(transition_dict[in_trans], place, net)
-            for out_trans in p.output_trans:
-                petri.utils.add_arc_from_to(place, transition_dict[out_trans], net)
+            for a in activities:
+                if (a & p.input_trans) != 0:
+                    petri.utils.add_arc_from_to(transition_dict[reverse_mapping[a]], place, net)
+                if (a & p.output_trans) != 0:
+                    petri.utils.add_arc_from_to(place, transition_dict[reverse_mapping[a]], net)
         return net, source, sink
     
     def _ready_for_execution_invariant(self):

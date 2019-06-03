@@ -11,14 +11,14 @@ class PlaceFitness(Enum):
 class PlaceFitnessEvaluator:
 
     @classmethod
-    def evaluate_place_fitness(cls, log, place, tau, key):
+    def evaluate_place_fitness(cls, log, place, tau):
         overfed_traces = 0
         underfed_traces = 0
         fitting_traces = 0
         involved_traces = 0
 
-        for (trace_key, (freq, trace)) in log.items():
-            (involved, states) = cls.trace_fitness(trace, place, key)
+        for (trace_key, (freq, trace_bit_string)) in log.items():
+            (involved, states) = cls.trace_fitness(trace_bit_string, place)
             if PlaceFitness.UNDERFED in states: underfed_traces += freq
             if PlaceFitness.OVERFED  in states: overfed_traces  += freq
             if PlaceFitness.FITTING  in states: fitting_traces  += freq
@@ -34,18 +34,18 @@ class PlaceFitnessEvaluator:
         )
 
     @classmethod
-    def trace_fitness(cls, trace, place, key):
+    def trace_fitness(cls, trace_bit_string, place):
         tokens = 0
         involved = False
         states = set()
-        for event in trace:
-            if event[key] in place.input_trans or event[key] in place.output_trans:
+        for event in trace_bit_string:
+            if (event & place.output_trans) != 0:
                 involved = True
-            if event[key] in place.output_trans:
                 tokens -= 1
             if tokens < 0:
                 states.add(PlaceFitness.UNDERFED)
-            if event[key] in place.input_trans:
+            if (event & place.input_trans) != 0:
+                involved = True
                 tokens += 1
 
         if tokens > 0:

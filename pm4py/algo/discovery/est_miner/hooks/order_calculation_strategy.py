@@ -4,51 +4,51 @@ import pm4py.objects.log.util.log as log_util
 from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder, \
 ActivityOrderBuilder
 
-def get_abs_trace_occ(log, key, activities):
+def get_abs_trace_occ(log, activities):
     abs_trace_occ = {}
     for a in activities:
         traces = 0
-        for t in log:
+        for (trace_key, (freq, trace_bit_string)) in log.items():
             occ = False
-            for e in t:
-                if a == e[key]:
+            for e in trace_bit_string:
+                if a == e:
                     occ = True
             if occ:
-                traces += 1
+                traces += freq
         abs_trace_occ[a] = traces
     return abs_trace_occ
 
-def get_rel_trace_occ(log, key, activities):
+def get_rel_trace_occ(log, activities):
     relative_trace_occ = {}
     for a in activities:
         traces = 0
-        for t in log:
+        for (trace_key, (freq, trace_bit_string)) in log.items():
             occ = False
-            for e in t:
-                if a == e[key]:
+            for e in trace_bit_string:
+                if a == e:
                     occ = True
             if occ:
-                traces += 1
+                traces += freq
         relative_trace_occ[a] = traces / len(log)
     return relative_trace_occ
 
-def get_avg_trace_occ(log, key, activities):
+def get_avg_trace_occ(log, activities):
     avg_trace_occ = {}
     for a in activities:
         avg_occ = 0
-        for t in log:
+        for (trace_key, (freq, trace_bit_string)) in log.items():
             occ = 0
-            for e in t:
-                if a == e[key]:
+            for e in trace_bit_string:
+                if a == e:
                     occ += 1
-            avg_occ += (occ / len(t))
+            avg_occ += freq * (occ / len(trace_bit_string))
         avg_trace_occ[a] = avg_occ / len(log)
     return avg_trace_occ
 
 class OrderCalculationStrategy(abc.ABC):
 
     @abc.abstractmethod
-    def execute(self, log, key):
+    def execute(self, log, transitions):
         """
         Calculate two orders on the given log, one for 
         input and one for out activities.
@@ -66,15 +66,14 @@ class OrderCalculationStrategy(abc.ABC):
 
 class NoOrderCalculationStrategy(OrderCalculationStrategy):
 
-    def execute(self, log):
+    def execute(self, log, activites):
         print('Executed Order Calculation')
         return None, None
 
 class MaxOverfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
-        activities = log_util.get_event_labels(log, key)
-        avg_trace_occ = get_avg_trace_occ(log, key, activities)
+    def execute(self, log, activities):
+        avg_trace_occ = get_avg_trace_occ(log, activities)
 
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -92,12 +91,11 @@ class MaxOverfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
 
 class MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
+    def execute(self, log, activities):
         # A place is more likely to be overfed, if its' input transitions
         # are more likely to occur in a trace, than the place's output
         # transitions.
-        activities = log_util.get_event_labels(log, key)
-        abs_trace_occ = get_abs_trace_occ(log, key, activities)
+        abs_trace_occ = get_abs_trace_occ(log, activities)
         
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -118,12 +116,11 @@ class MaxOverfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy)
 
 class MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
+    def execute(self, log, activities):
         # A place is more likely to be overfed, if its' input transitions
         # are more likely to occur in a trace, than the place's output
         # transitions.
-        activities = log_util.get_event_labels(log, key)
-        rel_trace_occ = get_rel_trace_occ(log, key, activities)
+        rel_trace_occ = get_rel_trace_occ(log, activities)
         
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -144,9 +141,8 @@ class MaxOverfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStra
 
 class MaxUnderfedPlacesThroughAFOIOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
-        activities = log_util.get_event_labels(log, key)
-        avg_first_occ_index = self._avg_first_occ_index(log, key, activities)
+    def execute(self, log, activities):
+        avg_first_occ_index = self._avg_first_occ_index(log, activities)
 
         input_order_builder = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -162,30 +158,29 @@ class MaxUnderfedPlacesThroughAFOIOrderStrategy(OrderCalculationStrategy):
         
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
-    def _avg_first_occ_index(self, log, key, activites):
+    def _avg_first_occ_index(self, log, activites):
         avg_first_occ_index = dict()
         for a in activites:
             index_sum = 0
             traces = 0
-            for t in log:
+            for (trace_key, (freq, trace_bit_string)) in log.items():
                 occ = False
                 index = 0
-                for e in t:
-                    if a == e[key]:
+                for e in trace_bit_string:
+                    if a == e:
                         if not occ:
                             index_sum += index
                             occ = True
                     index += 1
                 if occ:
-                    traces += 1
+                    traces += freq
             avg_first_occ_index[a] = (index_sum / traces)
         return avg_first_occ_index
 
 class MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
-        activities = log_util.get_event_labels(log, key)
-        avg_trace_occ = get_avg_trace_occ(log, key, activities)
+    def execute(self, log, activities):
+        avg_trace_occ = get_avg_trace_occ(log, activities)
         
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -206,11 +201,10 @@ class MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy)
 
 class MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
+    def execute(self, log, activities):
         # A place is more likely to be underfed, if its' output transitions
         # are more likely to occur in a trace, than the place's input transitons.
-        activities = log_util.get_event_labels(log, key)
-        abs_trace_occ = get_abs_trace_occ(log, key, activities)
+        abs_trace_occ = get_abs_trace_occ(log, activities)
         
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -231,11 +225,10 @@ class MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy
 
 class MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
+    def execute(self, log, activities):
         # A place is more likely to be underfed, if its' output transitions
         # are more likely to occur in a trace, than the place's input transitons.
-        activities = log_util.get_event_labels(log, key)
-        rel_trace_occ = get_rel_trace_occ(log, key, activities)
+        rel_trace_occ = get_rel_trace_occ(log, activities)
         
         input_order_builder  = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
@@ -256,12 +249,11 @@ class MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStr
 
 class LexicographicalOrderStrategy(OrderCalculationStrategy):
 
-    def execute(self, log, key):
-        activites = log_util.get_event_labels(log, key)
-        input_order_builder  = ActivityOrderBuilder(activites)
-        output_order_builder = ActivityOrderBuilder(activites)
+    def execute(self, log, activities):
+        input_order_builder  = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
 
-        sorted_activities = sorted(activites, key=str.lower)
+        sorted_activities = sorted(activities)
         for i in range(0, len(sorted_activities)):
             for j in range(i, len(sorted_activities)):
                 if (sorted_activities[i] != sorted_activities[j]):

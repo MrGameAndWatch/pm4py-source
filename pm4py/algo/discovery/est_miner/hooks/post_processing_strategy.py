@@ -21,7 +21,7 @@ class PostProcessingStrategy(abc.ABC):
 
 class NoPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions):
+    def execute(self, candidate_places, transitions, logger=None):
         print('Executed Post Processing')
         return candidate_places
 
@@ -53,12 +53,12 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         post = {}
         for p in candidate_places:
             for t in transitions:
-                if t in p.input_trans:
+                if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
                     pre[p, t] = 0
                 
-                if t in p.output_trans:
+                if (t & p.output_trans) != 0:
                     post[p, t] = 1
                 else:
                     post[p, t] = 0
@@ -126,12 +126,12 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         post = {}
         for p in candidate_places:
             for t in transitions:
-                if t in p.input_trans:
+                if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
                     pre[p, t] = 0
                 
-                if t in p.output_trans:
+                if (t & p.output_trans) != 0:
                     post[p, t] = 1
                 else:
                     post[p, t] = 0
@@ -173,8 +173,9 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         for t in transitions:
             model.addConstr(quicksum(y[p] * (post[p, t] - pre[p, t]) for p in pruned_set.difference({p_test})) <= post[p_test, t] - pre[p_test, t])
         
-        for t in p_test.output_trans:
-            model.addConstr(quicksum(y[p] * pre[p, t] + mu for p in pruned_set.difference({p_test})) >= pre[p_test, t])
+        for t in transitions:
+            if (t & p_test.output_trans) != 0:
+                model.addConstr(quicksum(y[p] * pre[p, t] + mu for p in pruned_set.difference({p_test})) >= pre[p_test, t])
 
         model.optimize()
         if model.status == GRB.OPTIMAL:
@@ -193,12 +194,12 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
         post = {}
         for p in candidate_places:
             for t in transitions:
-                if t in p.input_trans:
+                if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
                     pre[p, t] = 0
                 
-                if t in p.output_trans:
+                if (t & p.output_trans) != 0:
                     post[p, t] = 1
                 else:
                     post[p, t] = 0
@@ -245,8 +246,9 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
         for t in transitions:
             model.addConstr(quicksum(y[p] * (post[p, t] - pre[p, t]) for p in pruned_set.difference({p_test})) <= post[p_test, t] - pre[p_test, t])
         
-        for t in p_test.output_trans:
-            model.addConstr(quicksum(z[p] * pre[p, t] + mu for p in pruned_set.difference({p_test})) >= pre[p_test, t])
+        for t in transitions:
+            if (t & p_test.output_trans) != 0:
+                model.addConstr(quicksum(z[p] * pre[p, t] + mu for p in pruned_set.difference({p_test})) >= pre[p_test, t])
         
         model.addConstr(mu <= 0)
 

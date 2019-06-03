@@ -18,20 +18,22 @@ class ActivityOrder:
     def is_larger_relations(self):
         return self._is_larger_relations
 
-def max_element(activities, order):
+def max_element(activities, inv_set, order):
     a_max = None
     for a in activities:
-        if a_max == None:
-            a_max = a
-        elif a in set(order.is_larger_relations[a_max]):
-            a_max = a
+        if (a & inv_set) != 0:
+            if a_max == None:
+                a_max = a
+            elif a in set(order.is_larger_relations[a_max]):
+                a_max = a
     return a_max
 
-def min_element(activities, order):
+def min_element(activities, inv_set, order):
     a_min = None
     for a in activities:
-        if a_min == None:
-            a_min = a
-        elif a_min in set(order.is_larger_relations[a]):
-            a_min = a
+        if ( a & inv_set) != 0:
+            if a_min == None:
+                a_min = a
+            elif a_min in set(order.is_larger_relations[a]):
+                a_min = a
     return a_min

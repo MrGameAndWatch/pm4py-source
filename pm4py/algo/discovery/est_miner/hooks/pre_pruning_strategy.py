@@ -22,7 +22,7 @@ class PrePruningStrategy(abc.ABC):
 
 class NoPrePruningStrategy(PrePruningStrategy):
 
-    def initialize(self, log, key, activites):
+    def initialize(self, log, activities):
         pass
 
     def execute(self, candidate_place):
@@ -31,13 +31,13 @@ class NoPrePruningStrategy(PrePruningStrategy):
 
 class PrePruneUselessPlacesStrategy(PrePruningStrategy):
 
-    def initialize(self, log, key, activites):
+    def initialize(self, log, activities):
         pass
 
-    def execute(self, candidate_place):
+    def execute(self, candidate_place, start_activity, end_activity):
         return (
-            const.END_ACTIVITY in candidate_place.input_trans 
-            or const.START_ACTIVITY in candidate_place.output_trans 
+            ((end_activity & candidate_place.input_trans) != 0)
+            or ((start_activity & candidate_place.output_trans) != 0)
         )
 
 class ImportantPlacesPrePruning(PrePruningStrategy):
@@ -47,36 +47,38 @@ class ImportantPlacesPrePruning(PrePruningStrategy):
         self._log               = None
         self._key               = None
         self._threshold         = None
+        self._delta             = None
+        self._activities        = None
         self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
     
-    def initialize(self, log, key, activites, threshold=0.9):
+    def initialize(self, log, activities, threshold=1.0):
         self._log = log
-        self._key = key
         self._threshold = threshold
-        self._relation_support = self._build_relation_support(log, key, activites)
+        self._activities = activities
+        self._relation_support = self._build_relation_support(log, activities)
     
-    def execute(self, candidate_place):
+    def execute(self, candidate_place, start_activity, end_activity):
         return (
-            self._pre_prune_useless_places.execute(candidate_place) or
-            self._score_place(candidate_place, self._log, self._key, self._threshold)
+            self._pre_prune_useless_places.execute(candidate_place, start_activity, end_activity) or
+            self._score_place(self._activities, candidate_place, self._log, self._threshold)
         )
     
-    def _build_relation_support(self, log, key, activites):
-        per_trace_support = self._build_per_trace_support(log, key, activites)
+    def _build_relation_support(self, log, activites):
+        per_trace_support = self._build_per_trace_support(log, activites)
         relation_support = dict()
         for a1 in activites:
             for a2 in activites:
                 score = 0
                 normalization_factor = 0
-                for (trace_key, (freq, trace)) in log.items():
+                for (trace_key, (freq, trace_bit_map)) in log.items():
                     score += freq * per_trace_support[trace_key, a1, a2]
 
                     found_a1 = False
                     found_a2 = False
-                    for e in trace:
-                        if e[key] == a1:
+                    for e in trace_bit_map:
+                        if e == a1:
                             found_a1 = True
-                        if e[key] == a2:
+                        if e == a2:
                             found_a2 = True
                     if (found_a1 and found_a2):
                         normalization_factor += freq
@@ -86,27 +88,27 @@ class ImportantPlacesPrePruning(PrePruningStrategy):
                     relation_support[a1, a2] = (score / normalization_factor)
         return relation_support
     
-    def _build_per_trace_support(self, log, key, activites):
+    def _build_per_trace_support(self, log, activites):
         per_trace_support = dict()
-        for (trace_key, (freq, trace)) in log.items():
+        for (trace_key, (freq, trace_bit_map)) in log.items():
             for a1 in activites:
                 for a2 in activites:
-                    per_trace_support[trace_key, a1, a2] = self._follows(a1, a2, trace, key)
+                    per_trace_support[trace_key, a1, a2] = self._follows(a1, a2, trace_bit_map)
         return per_trace_support
 
-    def _follows(self, a1, a2, trace, key):
+    def _follows(self, a1, a2, trace_bit_map):
         # Returns True, if a2 eventually follows a1 in the trace
         found_a1 = False
         follows  = 0
-        for e in trace:
+        for e in trace_bit_map:
             if found_a1:
-                if e[key] == a2:
+                if e == a2:
                     follows = 1
-            if e[key] == a1:
+            if e == a1:
                 found_a1 = True
         return follows
     
-    def _score_place(self, place, log, key, threshold):
+    def _score_place(self, activities, place, log, threshold):
         # Place score should give what percentage of pairwise relations between 
         # input and output activities are important (supported by the log).
         #
@@ -114,10 +116,11 @@ class ImportantPlacesPrePruning(PrePruningStrategy):
         # in each trace, then this place gives an important restriction. If only 
         # some are important, then splitting the place might be a good choice, meaning
         # the place itself and its subplaces are not interesting.
-        for a in place.input_trans:
-            for b in place.output_trans:
-                if a != b and self._relation_support[a, b] < threshold:
-                    return True
+        for a in activities:
+            for b in activities:
+                if (a & place.input_trans != 0) and (b & place.output_trans != 0):
+                    if a != b and self._relation_support[a, b] < threshold:
+                        return True
         return False
 
 class HeuristicPrePrune(PrePruningStrategy):
