@@ -40,6 +40,73 @@ class PrePruneUselessPlacesStrategy(PrePruningStrategy):
             or ((start_activity & candidate_place.output_trans) != 0)
         )
 
+class InterestingPlacesPrePruning(PrePruningStrategy):
+
+    def __init__(self):
+        self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
+        self._threshold = None
+        self._log = None
+        self._activities = None
+    
+    def initialize(self, log, activities, threshold=1.0):
+        self._threshold = threshold
+        self._log = log
+        self._activities = activities
+
+    def execute(self, candidate_place, start_activity, end_activity):
+        return (
+            self._pre_prune_useless_places.execute(candidate_place, start_activity, end_activity) or
+            self._only_interesting_relations(self._log, self._activities, self._threshold, candidate_place)
+        )
+    
+    def _only_interesting_relations(self, log, activities, threshold, place):
+        for a in activities:
+            for b in activities:
+                if (a & place.input_trans != 0) and (b & place.output_trans != 0) and (a != b):
+                    supporting_traces = 0
+                    normalization = 0
+                    for (trace_key, (freq, trace_bit_map)) in log.items():
+                        if self._contains_a_and_b(a, b, trace_bit_map):
+                            normalization += freq
+                            if (
+                                self._contains_required_sequence(a, b, place, trace_bit_map) 
+                                and not self._contains_forbidden_sequence(a, b, trace_bit_map)
+                            ):
+                                supporting_traces += freq
+                    if (normalization > 0):
+                        if (supporting_traces / normalization) < threshold:
+                            return True
+        return False
+
+    def _contains_a_and_b(self, a, b, trace_bit_map):
+        found_a, found_b = False, False
+        for e in trace_bit_map:
+            if e == a:
+                found_a = True
+            if e == b:
+                found_b = True
+        return (found_a and found_b)
+    
+    def _contains_required_sequence(self, a, b, place, trace_bit_map):
+        found_a, found_sequence = False, False
+        for e in trace_bit_map:
+            if e == a:
+                found_a = True
+            if found_a and (e & place.input_trans != 0) and e != a:
+                return False
+            if found_a and e == b:
+                found_sequence = True
+        return found_sequence
+    
+    def _contains_forbidden_sequence(self, a, b, trace_bit_map):
+        found_b, found_sequence = False, False
+        for e in trace_bit_map:
+            if e == b:
+                found_b = True
+            if found_b and e == a:
+                found_sequence = True
+        return found_sequence
+
 class ImportantPlacesPrePruning(PrePruningStrategy):
 
     def __init__(self):
@@ -98,6 +165,7 @@ class ImportantPlacesPrePruning(PrePruningStrategy):
 
     def _follows(self, a1, a2, trace_bit_map):
         # Returns True, if a2 eventually follows a1 in the trace
+        # a2 eventually follows a1
         found_a1 = False
         follows  = 0
         for e in trace_bit_map:
