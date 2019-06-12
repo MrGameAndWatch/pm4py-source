@@ -5,9 +5,10 @@ import csv
 
 from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
 MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder, \
-MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder, AlphaMinerRefinementSearchEstMinerBuilder, \
-PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder, MaxUnderfedAvgTraceOccEstMinerBuilder, \
-MaxUnderfedAvgFirstOccIndexEstMinerBuilder
+PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder, \
+MaxUnderfedAvgTraceOccEstMinerBuilder, MaxUnderfedAvgFirstOccIndexEstMinerBuilder, \
+AlternativeInterestingPlacesEstMinerBuilder, RestrictNumInAndOutTransitionsEstMinerBuilder, \
+ImportantTracesEstMinerBuilder
 
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
@@ -19,13 +20,16 @@ from pm4py.evaluation.replay_fitness import factory as fitness_factory
 from pm4py.evaluation.simplicity import factory as simplicity_factory
 from experiments.logging.logger import RuntimeStatisticsLogger
 import experiments.visualization.charts as charts
+from pm4py.algo.discovery.inductive import factory as inductive_miner
+from pm4py.algo.filtering.log.variants import variants_filter
+
 
 data_set_paths = [
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'dominiks-log'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'artificial-xor-test-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'two-trans-set'),
-    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'repair-set'),
-#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'reviewing-set'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'repair-set'),
+    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'reviewing-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'teleclaims-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-mod-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'road-traffic-fine-set'),
@@ -40,9 +44,9 @@ data_set_file_names = [
 #    'APM_Assignment_1.xes',
 #    'Log-dependencyXOR1.xes',
 #    'TwoActivities.xes',
-    'repairExample.xes',
+#    'repairExample.xes',
 #    'reviewing.xes',
-#    'teleclaims.xes',
+    'teleclaims.xes',
 #    'sepsis.xes',
 #    'road-traffic-fines.xes',
 #    'Sepsis-doubletracesout.xes',
@@ -57,15 +61,28 @@ result_folder = 'res'
 log_folder    = 'out-logs'
 charts_folder = 'charts'
 statistics_file_name = 'statistics.csv'
+conformance_stats_file = 'conformance.csv'
 
-NUM_RUNS = 5
+NUM_RUNS = 1
 
-def evaluate_net(log, net, initial_marking, final_marking, path, est_miner_name):
+def evaluate_net(log, net, initial_marking, final_marking, path):
     fitness = fitness_factory.apply(log, net, initial_marking, final_marking)
     precision = precision_factory.apply(log, net, initial_marking, final_marking)
     generalization = generalization_factory.apply(log, net, initial_marking, final_marking)
     simplicity = simplicity_factory.apply(net)
-    charts.plot_evaluation(fitness, precision, generalization, simplicity, os.path.join(path, est_miner_name, charts_folder, 'metrics.pdf'))
+    column_names = ['fitness', 'precision', 'generalization', 'simplicity']
+    row = []
+    row.append(fitness)
+    row.append(precision)
+    row.append(generalization)
+    row.append(simplicity)
+    
+    with open(os.path.join(path, conformance_stats_file), 'w') as file:
+        writer = csv.writer(file)
+        writer.writerow(column_names)
+        writer.writerow(row)
+    file.close()
+    #charts.plot_evaluation(fitness, precision, generalization, simplicity, os.path.join(path, est_miner_name, charts_folder, 'metrics.pdf'))
 
 def execute_miner(est_miner, parameters, folder, log_file_name):
     tau_sub_folder = tau_folder.format(tau=parameters['tau'])
@@ -89,11 +106,11 @@ def execute_miner(est_miner, parameters, folder, log_file_name):
 
     log = xes_importer.apply(os.path.join(folder, log_file_name))
     net, im, fm, stat_logger = est_miner.apply(log, parameters=parameters, logger=logger)
-    evaluate_net(log, net, im, fm, os.path.join(folder, tau_sub_folder), est_miner.name)
+    evaluate_net(log, net, im, fm, os.path.join(folder, tau_sub_folder, est_miner.name, result_folder))
     gviz = apply(net, initial_marking=im, final_marking=fm)
     save(gviz, os.path.join(folder, tau_sub_folder, est_miner.name, result_folder, 'net.png'))
     create_statistic(stat_logger, os.path.join(folder, tau_sub_folder, est_miner.name, charts_folder))
-    stat_logger.to_file(os.path.join(folder, tau_sub_folder, est_miner.name, 'stat_logger.StatLogger'))
+    #stat_logger.to_file(os.path.join(folder, tau_sub_folder, est_miner.name, 'stat_logger.StatLogger'))
     return stat_logger
 
 def create_statistic(stat_logger, path):
@@ -112,21 +129,25 @@ def construct_est_miners():
     max_cutoffs_abs_trace_freq_est_miner_builder = MaxCutoffsAbsFreqEstMinerBuilder()
     max_cutoffs_rel_trace_freq_est_miner_builder = MaxCutoffsRelTraceFreqEstMinerBuilder()
     max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder = RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder()
-    max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder = MaxCutoffsRelTraceFreqHeuristicPruningEstMinerBuilder()
-    alpha_miner_refinment_search_est_miner_builder = AlphaMinerRefinementSearchEstMinerBuilder()
+    #alpha_miner_refinment_search_est_miner_builder = AlphaMinerRefinementSearchEstMinerBuilder()
     interest_places_pre_pruning_est_miner_builder = PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder()
     max_underfed_avg_trace_occ_est_miner_builder = MaxUnderfedAvgTraceOccEstMinerBuilder()
     max_underfed_avg_first_occ_index_est_miner_builder = MaxUnderfedAvgFirstOccIndexEstMinerBuilder()
+    alternative_interesting_places_est_miner_builder = AlternativeInterestingPlacesEstMinerBuilder()
+    restrict_num_in_out_trans_est_miner_builder = RestrictNumInAndOutTransitionsEstMinerBuilder()
+    important_traces_est_miner_builder = ImportantTracesEstMinerBuilder()
 
     est_miner_director.construct(standard_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_est_miner_builder)
     est_miner_director.construct(max_cutoffs_rel_trace_freq_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_restricted_blue_edges_est_miner_builder)
-    est_miner_director.construct(max_cutoffs_rel_trace_freq_heuristic_pruning_est_miner_builder)
-    est_miner_director.construct(alpha_miner_refinment_search_est_miner_builder)
+    #est_miner_director.construct(alpha_miner_refinment_search_est_miner_builder)
     est_miner_director.construct(interest_places_pre_pruning_est_miner_builder)
     est_miner_director.construct(max_underfed_avg_trace_occ_est_miner_builder)
     est_miner_director.construct(max_underfed_avg_first_occ_index_est_miner_builder)
+    est_miner_director.construct(alternative_interesting_places_est_miner_builder)
+    est_miner_director.construct(restrict_num_in_out_trans_est_miner_builder)
+    est_miner_director.construct(important_traces_est_miner_builder)
 
     #est_miners.append(standard_est_miner_builder.est_miner)
     #est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
@@ -137,6 +158,9 @@ def construct_est_miners():
     #est_miners.append(max_underfed_avg_trace_occ_est_miner_builder.est_miner)
     #est_miners.append(max_underfed_avg_first_occ_index_est_miner_builder.est_miner)
     est_miners.append(interest_places_pre_pruning_est_miner_builder.est_miner)
+    #est_miners.append(alternative_interesting_places_est_miner_builder.est_miner)
+    #est_miners.append(restrict_num_in_out_trans_est_miner_builder.est_miner)
+    #est_miners.append(important_traces_est_miner_builder.est_miner)
 
     return est_miners
 
@@ -179,7 +203,7 @@ def execute_experiments():
     est_miners = construct_est_miners()
     parameters = dict()
     parameters['key'] = 'concept:name'
-    parameters['tau'] = 1.0
+    parameters['tau'] = 0.7
 
     for i in range(0, len(data_set_paths)):
         stat_loggers = dict()
@@ -192,6 +216,14 @@ def execute_experiments():
                 #stat_loggers[est_miner.name].append(stat_logger)
         #create_dataset_charts(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder))
         #save_stats_to_file(stat_loggers, os.path.join(data_set_paths[i], tau_sub_folder, 'stats'))
+        if not os.path.exists(os.path.join(data_set_paths[i], tau_sub_folder, 'INDUCTIVE', result_folder)):
+            os.makedirs(os.path.join(data_set_paths[i], tau_sub_folder, 'INDUCTIVE', result_folder))
+        log = xes_importer.import_log(os.path.join(data_set_paths[i], data_set_file_names[i]))
+        #log = variants_filter.apply_auto_filter(log, parameters={'decreasingFactor': 0.9})
+        net, initial_marking, final_marking = inductive_miner.apply(log)
+        gviz = apply(net, initial_marking=initial_marking, final_marking=final_marking)
+        save(gviz, os.path.join(data_set_paths[i], tau_sub_folder, 'INDUCTIVE', result_folder, 'net.png'))
+        evaluate_net(log, net, initial_marking, final_marking, os.path.join(data_set_paths[i], tau_sub_folder, 'INDUCTIVE', result_folder))
 
 if __name__ == "__main__":
     execute_experiments()
