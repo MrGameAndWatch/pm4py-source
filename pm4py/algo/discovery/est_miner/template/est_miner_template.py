@@ -6,6 +6,8 @@ import pm4py.objects.log.util.log as log_util
 from pm4py.objects import petri
 from pm4py.objects.petri.petrinet import Marking
 from pm4py.objects.petri.petrinet import PetriNet
+from pm4py.algo.discovery.est_miner.utils.place import Place
+from pm4py.algo.discovery.est_miner.utils.constants import ParameterNames
 
 from experiments.logging.logger import RuntimeStatisticsLogger
 
@@ -97,28 +99,44 @@ class EstMiner:
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
         optimized_for_replay_log, activities, start_activity, end_activity, reverse_mapping = est_utils.optimize_for_replay(log, parameters['key'])
+        most_common_traces = est_utils.most_common_traces(optimized_for_replay_log, num_most_common=1)
+        print(most_common_traces)
         in_order, out_order = self.order_calculation_strategy.execute(optimized_for_replay_log, activities)
         stat_logger = RuntimeStatisticsLogger(self.name, activities, in_order, out_order)
-        self.pre_pruning_strategy.initialize(optimized_for_replay_log, activities)
+        heuristic_parameters = {
+            ParameterNames.ACTIVITIES:                   activities,
+            ParameterNames.ALLOWED_IN_ACTIVITIES:        10,
+            ParameterNames.ALLOWED_OUT_ACTIVITIES:       10,
+            ParameterNames.START_ACTIVITY:               start_activity,
+            ParameterNames.END_ACTIVITY:                 end_activity,
+            ParameterNames.INTERESTING_PLACES_THRESHOLD: 0.8,
+            ParameterNames.LOG:                          optimized_for_replay_log,
+            ParameterNames.FITTING_PLACES:               list(),
+            ParameterNames.IMPORTANT_TRACES:             most_common_traces
+        }
+        self.pre_pruning_strategy.initialize(parameters=heuristic_parameters)
         stat_logger.algo_started()
         stat_logger.search_started()
         candidate_places = self.search_strategy.execute(
-            log=optimized_for_replay_log,
-            tau=parameters['tau'],
-            pre_pruning_strategy=self.pre_pruning_strategy,
-            in_order=in_order,
-            out_order=out_order,
-            activities=activities,
-            start_activity=start_activity,
-            end_activity=end_activity,
+            optimized_for_replay_log,
+            parameters['tau'],
+            self.pre_pruning_strategy,
+            in_order,
+            out_order,
+            activities,
+            heuristic_parameters=heuristic_parameters,
             logger=logger,
             stat_logger=stat_logger
         )
+        # start_place = Place(0, start_activity, 0, 1)
+        # end_place = Place(end_activity, 0, 1, 0)
+        # candidate_places.append(start_place)
+        # candidate_places.append(end_place)
         stat_logger.search_finished()
         stat_logger.post_processing_started()
         resulting_places = self.post_processing_strategy.execute(
             candidate_places,
-            activities,
+            parameters=heuristic_parameters,
             logger=logger
         )
         stat_logger.post_processing_finished()
