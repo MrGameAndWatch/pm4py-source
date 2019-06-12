@@ -7,11 +7,12 @@ from progress.bar import ShadyBar
 
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.algo.discovery.est_miner.utils import constants as const
+from pm4py.algo.discovery.est_miner.utils.constants import ParameterNames
 
 class PostProcessingStrategy(abc.ABC):
 
     @abc.abstractmethod
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         """
         Remove redundant places from the found candidate places
         to make the resulting network better interpretable by 
@@ -21,13 +22,13 @@ class PostProcessingStrategy(abc.ABC):
 
 class NoPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         print('Executed Post Processing')
         return candidate_places
 
 class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         """
         Removes redundant places [1].
 
@@ -52,7 +53,7 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         pre  = {}
         post = {}
         for p in candidate_places:
-            for t in transitions:
+            for t in parameters[ParameterNames.ACTIVITIES]:
                 if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
@@ -65,7 +66,7 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
         pruned_set = set(candidate_places)
         for p_test in candidate_places:
-            if self.is_redundant(p_test, transitions, pre, post, pruned_set):
+            if self.is_redundant(p_test, parameters[ParameterNames.ACTIVITIES], pre, post, pruned_set):
                 if (logger is not None):
                     logger.info('Removing redundant place ' + p_test.name)
                 pruned_set.discard(p_test)
@@ -101,7 +102,7 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
 class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         """
         Removes implicit places as in [1].
 
@@ -122,10 +123,18 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         """
         if (logger is not None):
             logger.info('Starting Post Processing')
+        
+        activity_to_place_dependencies = dict()
+        for a in parameters[ParameterNames.ACTIVITIES]:
+            activity_to_place_dependencies[a] = set()
+            for p in candidate_places:
+                if (p.output_trans & a) != 0:
+                    activity_to_place_dependencies[a].add(p.copy())
+
         pre  = {}
         post = {}
         for p in candidate_places:
-            for t in transitions:
+            for t in parameters[ParameterNames.ACTIVITIES]:
                 if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
@@ -139,7 +148,16 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         pruned_set = set(candidate_places)
         bar = ShadyBar('Removing Structural Implicit Places', max=len(candidate_places))
         for p_test in candidate_places:
-            if self.is_implicit(p_test, transitions, pre, post, pruned_set):
+            if self.is_implicit(
+                p_test, 
+                parameters[ParameterNames.ACTIVITIES], 
+                pre, 
+                post, 
+                pruned_set, 
+                parameters[ParameterNames.START_ACTIVITY],
+                parameters[ParameterNames.END_ACTIVITY],
+                activity_to_place_dependencies
+            ):
                 if (logger is not None):
                     logger.info('Removing implicit place ' + p_test.name)
                 pruned_set.discard(p_test)
@@ -148,16 +166,21 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         
         return pruned_set
         
-    def is_implicit(self, p_test, transitions, pre, post, pruned_set):
+    def is_implicit(self, p_test, transitions, pre, post, pruned_set, start_activity, end_activity, activity_to_place_dependencies):
         implicit = False
         model = Model('Implicit Place Test')
         model.setParam('OutputFlag', 0)
         y = {}
+#        m_0 = {}
 
         for p in pruned_set.difference({p_test}):
             y[p] = model.addVar(
                 vtype=GRB.BINARY
             )
+#            if p.input_trans == 0 and p.output_trans == start_activity:
+#                m_0[p] = 1
+#            else:
+#                m_0[p] = 0
 
         mu = model.addVar(
             vtype=GRB.INTEGER
@@ -182,18 +205,34 @@ class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
             if model.objVal <= 0:
                 implicit = True
             
-        return implicit
+        if implicit:
+            for t in transitions:
+                if (t & p_test.output_trans) != 0:
+                    if len(activity_to_place_dependencies[t]) == 1:
+                        return False
+                    else:
+                        activity_to_place_dependencies[t].remove(p_test)
+            return True
+        else:
+            return False
 
 class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         if (logger is not None):
             logger.info('Starting Post Processing')
+        
+        activity_to_place_dependencies = dict()
+        for a in parameters[ParameterNames.ACTIVITIES]:
+            activity_to_place_dependencies[a] = set()
+            for p in candidate_places:
+                if (p.output_trans & a) != 0:
+                    activity_to_place_dependencies[a].add(p.copy())
 
         pre  = {}
         post = {}
         for p in candidate_places:
-            for t in transitions:
+            for t in parameters[ParameterNames.ACTIVITIES]:
                 if (t & p.input_trans) != 0:
                     pre[p, t] = 1
                 else:
@@ -207,7 +246,16 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
         pruned_set = set(candidate_places)
         bar = ShadyBar('Removing Concurrent Implicit Places', max=len(candidate_places))
         for p_test in candidate_places:
-            if self.is_concurrent_implicit(p_test, transitions, pre, post, pruned_set):
+            if self.is_concurrent_implicit(
+                p_test, 
+                parameters[ParameterNames.ACTIVITIES], 
+                pre, 
+                post, 
+                pruned_set, 
+                parameters[ParameterNames.START_ACTIVITY],
+                parameters[ParameterNames.END_ACTIVITY],
+                activity_to_place_dependencies
+            ):
                 if (logger is not None):
                     logger.info('Removing implicit place ' + p_test.name)
                 pruned_set.discard(p_test)
@@ -216,7 +264,9 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
         
         return pruned_set
     
-    def is_concurrent_implicit(self, p_test, transitions, pre, post, pruned_set):
+    def is_concurrent_implicit(self, p_test, transitions, pre, post, pruned_set, start_activity, end_activity, activity_to_place_dependencies):
+        #if (p_test.input_trans & start_activity) != 0 and (p_test.output_trans & end_activity) != 0 and p_test.num_input_trans == 2 and p_test.num_output_trans == 2:
+        #    return False
         concurrent_implicit = False
         model = Model('Concurrent Implicit Place Test')
         model.setParam('OutputFlag', 0)
@@ -257,47 +307,56 @@ class RemoveConcurrentImplicitPlacesPostProcessingStrategy(PostProcessingStrateg
             if model.objVal <= 0:
                 concurrent_implicit = True
             
-        return concurrent_implicit 
+        if concurrent_implicit:
+            for t in transitions:
+                if (t & p_test.output_trans) != 0:
+                    if len(activity_to_place_dependencies[t]) == 1:
+                        return False
+                    else:
+                        activity_to_place_dependencies[t].remove(p_test)
+            return True
+        else:
+            return False
 
 class RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         structural_impl_places_remover = RemoveImplicitPlacesLPPostProcessingStrategy()
         concurrent_impl_places_remover = RemoveConcurrentImplicitPlacesPostProcessingStrategy()
 
         without_structural_impl_places = structural_impl_places_remover.execute(
             candidate_places,
-            transitions,
+            parameters=parameters, 
             logger=logger
         )
 
         without_concurrent_impl_places = concurrent_impl_places_remover.execute(
             without_structural_impl_places,
-            transitions,
+            parameters=parameters,
             logger=logger
         )
         return without_concurrent_impl_places
 
 class RemoveRedundantAndImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions, logger=None):
+    def execute(self, candidate_places, parameters=None, logger=None):
         redundant_places_remover = RemoveRedundantPlacesLPPostProcessingStrategy()
         implicit_places_remover = RemoveImplicitPlacesLPPostProcessingStrategy()
 
         without_redundant_places = redundant_places_remover.execute(
             candidate_places,
-            transitions,
+            parameters=parameters,
             logger=logger
         )
 
         without_implicit_places = implicit_places_remover.execute(
             without_redundant_places,
-            transitions,
+            parameters=parameters,
             logger=logger
         )
         return without_implicit_places
 
 class DeleteDuplicatePlacesPostProcessingStrategy(PostProcessingStrategy):
 
-    def execute(self, candidate_places, transitions):
+    def execute(self, candidate_places, parameters=None):
         return set(candidate_places)
