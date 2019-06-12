@@ -1,19 +1,22 @@
 import abc
 from collections import defaultdict
+from enum import Enum
 
 import pm4py.algo.discovery.est_miner.utils.constants as const
+from pm4py.algo.discovery.est_miner.utils.constants import ParameterNames
+from pm4py.algo.discovery.est_miner.utils.place import Place
 
 class PrePruningStrategy(abc.ABC):
 
     @abc.abstractmethod
-    def initialize(self, log, key, activites):
+    def initialize(self, parameters=None):
         """
         Initialize potential heuristics.
         """
         pass
 
     @abc.abstractmethod
-    def execute(self, candidate_place):
+    def execute(self, candidate_place, parameters=None):
         """
         Evaluate if the given candidate place is already
         pruned.
@@ -22,25 +25,174 @@ class PrePruningStrategy(abc.ABC):
 
 class NoPrePruningStrategy(PrePruningStrategy):
 
-    def initialize(self, log, activities):
+    def initialize(self, parameters=None):
         pass
 
-    def execute(self, candidate_place):
+    def execute(self, candidate_place, parameters=None):
         print('Executed Pre Pruning')
         return False
 
 class PrePruneUselessPlacesStrategy(PrePruningStrategy):
 
-    def initialize(self, log, activities):
+    def initialize(self, parameters=None):
         pass
 
-    def execute(self, candidate_place, start_activity, end_activity):
-        return (
-            ((end_activity & candidate_place.input_trans) != 0)
-            or ((start_activity & candidate_place.output_trans) != 0)
+    def execute(self, candidate_place, parameters=None):
+        assert(
+                ParameterNames.START_ACTIVITY in parameters
+            and ParameterNames.END_ACTIVITY in parameters
         )
 
-class InterestingPlacesPrePruning(PrePruningStrategy):
+        return (
+            ((parameters[ParameterNames.END_ACTIVITY] & candidate_place.input_trans) != 0)
+            or ((parameters[ParameterNames.START_ACTIVITY] & candidate_place.output_trans) != 0)
+        )
+
+class ImportantTracesPrePruning(PrePruningStrategy):
+
+    def __init__(self):
+        self._pre_prune_useless_places  = PrePruneUselessPlacesStrategy()
+    
+    def initialize(self, parameters=None):
+        pass
+    
+    def execute(self, candidate_place, parameters=None):
+        assert(ParameterNames.FITTING_PLACES in parameters)
+        """
+        Tests if a certain set of traces is fitted by the current set of places, including a
+        new candidate place. If not, prune the candidate place and all its child places.
+
+        necessary parameters:
+        ------------
+        candidate_place: The place that could be pruned or not
+        start_activity:  The first activity of each trace
+        end_activity:    The last activity of each trace
+        fitting_places:  The list of places currently found by the search
+        """
+        return (
+            self._pre_prune_useless_places.execute(candidate_place, parameters=parameters)
+            or not self._fits_all_important_traces(
+                candidate_place, 
+                parameters[ParameterNames.IMPORTANT_TRACES], 
+                parameters[ParameterNames.FITTING_PLACES],
+                parameters[ParameterNames.ACTIVITIES],
+                parameters[ParameterNames.START_ACTIVITY],
+                parameters[ParameterNames.END_ACTIVITY]
+            )
+        )
+    
+    def _fits_all_important_traces(
+        self,
+        candidate_place,
+        important_traces,
+        fitting_places,
+        activities,
+        start_activity,
+        end_activity
+    ):
+        places = fitting_places.copy()
+        places.append(candidate_place)
+        activity_as_input = dict()
+        activity_as_output = dict()
+        for activity in activities:
+            activity_as_input[activity] = list()
+            activity_as_output[activity] = list()
+
+        for place in places:
+            for activity in activities:
+                if (activity & place.input_trans) != 0:
+                    activity_as_input[activity].append(place)
+                if (activity & place.output_trans) != 0:
+                    activity_as_output[activity].append(place)
+        start_place = Place(0, start_activity, 0, 1)
+        sink_place = Place(end_activity, 0, 1, 0)
+        activity_as_output[start_activity].append(start_place)
+        activity_as_input[end_activity].append(sink_place)
+        places.append(start_place)
+        places.append(sink_place)
+
+        for trace in important_traces:
+            if not self._can_replay_trace(
+                trace,
+                activities,
+                places,
+                activity_as_input,
+                activity_as_output,
+                start_place,
+                sink_place
+            ):
+                return False
+        return True
+    
+    def _can_replay_trace(
+        self,
+        trace,
+        activities,
+        places,
+        activity_as_input,
+        activity_as_output,
+        start_place,
+        sink_place
+    ):
+        token_map = dict()
+        for place in places:
+            if place == start_place:
+                token_map[place] = 1
+            else:
+                token_map[place] = 0
+
+        # check if all events can be executed in order
+        for event in trace:
+            for place in activity_as_output[event]:
+                if token_map[place] <= 0:
+                    return False
+                else:
+                    token_map[place] -= 1
+            for place in activity_as_input[event]:
+                token_map[place] += 1
+
+        # check if final marking is reached
+        for place in places:
+            if place == sink_place:
+                if token_map[place] != 1:
+                    return False
+            else:
+                if token_map[place] != 0:
+                    return False
+
+        return True
+
+class RestrictNumInputOutputTransPrePruning(PrePruningStrategy):
+
+    def __init__(self):
+        self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
+    
+    def initialize(self, parameters=None):
+        pass
+
+    def execute(self, candidate_place, parameters=None):
+        assert(
+                ParameterNames.ALLOWED_IN_ACTIVITIES in parameters 
+            and ParameterNames.ALLOWED_OUT_ACTIVITIES in parameters
+        )
+        """
+        Checks if the place has too many input or output transitions, because
+        this could make the net hardly readable. If yes, we prune the place.
+        """
+
+        return (
+            self._pre_prune_useless_places.execute(candidate_place, parameters=parameters)
+            or self._too_many_input_transitions(candidate_place, parameters[ParameterNames.ALLOWED_IN_ACTIVITIES])
+            or self._too_many_output_transitions(candidate_place, parameters[ParameterNames.ALLOWED_OUT_ACTIVITIES])
+        )
+    
+    def _too_many_input_transitions(self, candidate_place, threshold):
+        return candidate_place.num_input_trans > threshold
+    
+    def _too_many_output_transitions(self, candidate_place, threshold):
+        return candidate_place.num_output_trans > threshold
+
+class InterestingPlacesWithoutLoopsPrePruning(PrePruningStrategy):
 
     def __init__(self):
         self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
@@ -48,15 +200,27 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
         self._log = None
         self._activities = None
     
-    def initialize(self, log, activities, threshold=1.0):
-        self._threshold = threshold
-        self._log = log
-        self._activities = activities
+    def initialize(self, parameters=None):
+        pass
 
-    def execute(self, candidate_place, start_activity, end_activity):
+    def execute(self, candidate_place, parameters=None):
+        assert(ParameterNames.INTERESTING_PLACES_THRESHOLD in parameters)
+        """
+        Pre prunes all places that are not interesting (see thesis for definition).
+
+        necessary parameters:
+        start_activity
+        end_activity
+        interesting_places_threshold
+        """
         return (
-            self._pre_prune_useless_places.execute(candidate_place, start_activity, end_activity) or
-            self._only_interesting_relations(self._log, self._activities, self._threshold, candidate_place)
+            self._pre_prune_useless_places.execute(candidate_place, parameters=parameters) or
+            self._only_interesting_relations(
+                parameters[ParameterNames.LOG], 
+                parameters[ParameterNames.ACTIVITIES], 
+                parameters[ParameterNames.INTERESTING_PLACES_THRESHOLD], 
+                candidate_place
+            )
         )
     
     def _only_interesting_relations(self, log, activities, threshold, place):
@@ -107,27 +271,32 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
                 found_sequence = True
         return found_sequence
 
-class ImportantPlacesPrePruning(PrePruningStrategy):
+class InterestingPlacesPrePruning(PrePruningStrategy):
 
     def __init__(self):
         self._relation_support  = None
-        self._log               = None
-        self._key               = None
-        self._threshold         = None
-        self._delta             = None
-        self._activities        = None
         self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
     
-    def initialize(self, log, activities, threshold=1.0):
-        self._log = log
-        self._threshold = threshold
-        self._activities = activities
-        self._relation_support = self._build_relation_support(log, activities)
+    def initialize(self, parameters=None):
+        self._relation_support = self._build_relation_support(
+            parameters[ParameterNames.LOG], 
+            parameters[ParameterNames.ACTIVITIES]
+        )
     
-    def execute(self, candidate_place, start_activity, end_activity):
+    def execute(self, candidate_place, parameters=None):
+        assert(
+                ParameterNames.ACTIVITIES in parameters
+            and ParameterNames.LOG in parameters
+            and ParameterNames.INTERESTING_PLACES_THRESHOLD in parameters
+        )
         return (
-            self._pre_prune_useless_places.execute(candidate_place, start_activity, end_activity) or
-            self._score_place(self._activities, candidate_place, self._log, self._threshold)
+                self._pre_prune_useless_places.execute(candidate_place, parameters=parameters)
+            or  self._score_place(
+                    parameters[ParameterNames.ACTIVITIES], 
+                    candidate_place, 
+                    parameters[ParameterNames.LOG],
+                    parameters[ParameterNames.INTERESTING_PLACES_THRESHOLD]
+                )
         )
     
     def _build_relation_support(self, log, activites):
@@ -190,57 +359,3 @@ class ImportantPlacesPrePruning(PrePruningStrategy):
                     if a != b and self._relation_support[a, b] < threshold:
                         return True
         return False
-
-class HeuristicPrePrune(PrePruningStrategy):
-
-    def __init__(self):
-        self._follow_matrix = None
-        self._pre_prune_useless_places = PrePruneUselessPlacesStrategy()
-
-    def initialize(self, log, key, activites):
-        self._follow_matrix = self._build_follow_matrix(log, key, activites)
-
-    def execute(self, candidate_place):
-        prune = False
-        for input_a in candidate_place.input_trans:
-            for output_a in candidate_place.output_trans:
-                if self._follows(self._follow_matrix, pre=output_a, fol=input_a, threshold=1.0):
-                    prune = True
-        return (prune or self._pre_prune_useless_places.execute(candidate_place))
-
-    def _build_follow_matrix(self, log, key, activites):
-        num_traces = self._num_traces(log)
-        follow_matrix = defaultdict(dict)
-        for a1 in activites:
-            for a2 in activites:
-                a1_follows_a2 = self._num_follows(log, key, a1, a2) / num_traces
-                a2_follows_a1 = self._num_follows(log, key, a2, a1) / num_traces
-                follow_matrix[a1][a2] = a2_follows_a1
-                follow_matrix[a2][a1] = a1_follows_a2
-        return follow_matrix
-    
-    def _follows(self, follow_matrix, pre=None, fol=None, threshold=0):
-        assert(pre in follow_matrix and fol in follow_matrix)
-        return follow_matrix[pre][fol] > threshold
-    
-    def _num_follows(self, log, key, pre, fol):
-        count = 0
-        for (trace_key, (freq, trace)) in log.items():
-            pre_encountered = False
-            follows = False
-            for e in trace:
-                if pre_encountered:
-                    if e[key] == fol:
-                        follows = True
-
-                if e[key] == pre:
-                    pre_encountered = True
-            if follows:
-                count += freq
-        return count
-    
-    def _num_traces(self, log):
-        num_traces = 0
-        for (trace_key, (freq, trace)) in log.items():
-            num_traces += freq
-        return num_traces
