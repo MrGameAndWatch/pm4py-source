@@ -165,7 +165,7 @@ class MaxUnderfedPlacesThroughAFOIOrderStrategy(OrderCalculationStrategy):
             traces = 0
             for (trace_key, (freq, trace_bit_string)) in log.items():
                 occ = False
-                index = 0
+                index = 1
                 for e in trace_bit_string:
                     if a == e:
                         if not occ:

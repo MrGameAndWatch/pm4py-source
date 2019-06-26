@@ -100,6 +100,70 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
         
         return redundant
 
+class RemoveImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
+
+    def execute(self, candidate_places, parameters=None, logger=None):
+        # create source and sink place (remove them at the end again)
+        source = Place(0, parameters[ParameterNames.START_ACTIVITY], 0, 1)
+        sink   = Place(parameters[ParameterNames.END_ACTIVITY], 0, 1, 0)
+        candidate_places.append(source)
+        candidate_places.append(sink)
+        # build pre and post
+        pre  = {}
+        post = {}
+        for p in candidate_places:
+            for t in parameters[ParameterNames.ACTIVITIES]:
+                if (t & p.input_trans) != 0:
+                    pre[p, t] = 1
+                else:
+                    pre[p, t] = 0
+                if (t & p.output_trans) != 0:
+                    post[p, t] = 1
+                else:
+                    post[p, t] = 0
+        # build initial marking
+        initial_marking = {}
+        for p in candidate_places:
+            if p == source:
+                initial_marking[p] = 1
+            else:
+                initial_marking[p] = 0
+
+        # remove all implicit places
+        bar = ShadyBar('Removing Structural Implicit Places', max=len(candidate_places))
+        for q in candidate_places:
+            implicit = False
+            model = Model('Implicit Place Test')
+            model.setParam('OutputFlag', 0)
+            remaining_places = candidate_places.copy()
+            remaining_places.remove(q)
+            y = {}
+            for p in remaining_places:
+                y[p] = model.addVar(vtype=GRB.BINARY)
+            mu = model.addVar(vtype=GRB.INTEGER)
+            model.update()
+            model.setObjective(quicksum(y[p] * initial_marking[p] for p in remaining_places) + mu, GRB.MINIMIZE)
+            for t in parameters[ParameterNames.ACTIVITIES]:
+                model.addConstr(quicksum(y[p] * (post[p, t] - pre[p, t]) for p in remaining_places) + mu >= post[q, t] - pre[q, t])
+            for p in remaining_places:
+                model.addConstr(y[p] >= 0)
+            for t in parameters[ParameterNames.ACTIVITIES]:
+                if (t & q.output_trans) != 0:
+                    model.addConstr(quicksum(y[p] * pre[p, t] for p in remaining_places) + mu >= pre[q, t])
+            model.optimize()
+            if model.status == GRB.OPTIMAL:
+                if model.objVal <= initial_marking[q]:
+                    implicit = True
+            if implicit:
+                candidate_places = remaining_places
+            bar.next()
+        bar.finish()
+        if source in candidate_places:
+            candidate_places.remove(source)
+        if sink in candidate_places:
+            candidate_places.remove(sink)
+        return candidate_places
+
 class RemoveImplicitPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
     def execute(self, candidate_places, parameters=None, logger=None):

@@ -16,7 +16,8 @@ import NoSearchStrategy, TreeDfsStrategy
 from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy \
 import NoPostProcessingStrategy, DeleteDuplicatePlacesPostProcessingStrategy, \
 RemoveRedundantPlacesLPPostProcessingStrategy, RemoveRedundantAndImplicitPlacesPostProcessingStrategy, \
-RemoveImplicitPlacesLPPostProcessingStrategy, RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy
+RemoveImplicitPlacesLPPostProcessingStrategy, RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy, \
+RemoveImplicitPlacesPostProcessingStrategy
 
 from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy \
 import NoPrePruningStrategy, PrePruneUselessPlacesStrategy, InterestingPlacesPrePruning, \
@@ -197,7 +198,8 @@ class MaxUnderfedAvgTraceOccEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        #self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder):
 
@@ -257,7 +259,8 @@ class PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        #self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class AlternativeInterestingPlacesEstMinerBuilder(EstMinerBuilder):
 
