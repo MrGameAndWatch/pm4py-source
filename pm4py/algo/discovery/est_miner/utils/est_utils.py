@@ -58,6 +58,8 @@ def optimize_for_replay(log, key):
     return optimized_log, activities, start_activity, end_activity, bitmasks_to_events
 
 def most_common_traces(log, num_most_common=1):
+    if (num_most_common <= 0): return list()
+
     most_common_traces = dict()
     for (trace_key, (freq, trace_bit_string)) in log.items():
         if len(most_common_traces) < num_most_common:
