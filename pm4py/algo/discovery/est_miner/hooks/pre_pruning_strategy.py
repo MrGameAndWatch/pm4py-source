@@ -322,6 +322,7 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
                     relation_support[a1, a2] = 0
                 else:
                     relation_support[a1, a2] = (score / normalization_factor)
+        print(relation_support)
         return relation_support
     
     def _build_per_trace_support(self, log, activites):
@@ -334,7 +335,6 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
 
     def _follows(self, a1, a2, trace_bit_map):
         # Returns True, if a2 eventually follows a1 in the trace
-        # a2 eventually follows a1
         found_a1 = False
         follows  = 0
         for e in trace_bit_map:
@@ -356,6 +356,6 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
         for a in activities:
             for b in activities:
                 if (a & place.input_trans != 0) and (b & place.output_trans != 0):
-                    if a != b and self._relation_support[a, b] < threshold:
+                    if (self._relation_support[a, b] < threshold) and (a != b):
                         return True
         return False
