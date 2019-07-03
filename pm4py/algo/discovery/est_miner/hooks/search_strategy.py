@@ -135,13 +135,16 @@ class TreeDfsStrategy(SearchStrategy):
         if PlaceFitness.FITTING in place_fitness_states:
             if logger is not None:
                 logger.info('    Place is fitting.')
-            if self._can_replay_important_traces(
-                place,
-                fitting_places,
-                heuristic_parameters[ParameterNames.IMPORTANT_TRACES],
-                heuristic_parameters[ParameterNames.ACTIVITIES],
-                heuristic_parameters[ParameterNames.START_ACTIVITY],
-                heuristic_parameters[ParameterNames.END_ACTIVITY]
+            if (
+                len(heuristic_parameters[ParameterNames.IMPORTANT_TRACES]) == 0
+                or self._can_replay_important_traces(
+                    place,
+                    fitting_places,
+                    heuristic_parameters[ParameterNames.IMPORTANT_TRACES],
+                    heuristic_parameters[ParameterNames.ACTIVITIES],
+                    heuristic_parameters[ParameterNames.START_ACTIVITY],
+                    heuristic_parameters[ParameterNames.END_ACTIVITY]
+                )
             ):
                 fitting_places.append(place)
             heuristic_parameters[ParameterNames.FITTING_PLACES].append(place)
