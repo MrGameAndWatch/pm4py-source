@@ -105,14 +105,17 @@ class EstMiner:
         stat_logger = RuntimeStatisticsLogger(self.name, activities, in_order, out_order)
         heuristic_parameters = {
             ParameterNames.ACTIVITIES:                   activities,
-            ParameterNames.ALLOWED_IN_ACTIVITIES:        10,
-            ParameterNames.ALLOWED_OUT_ACTIVITIES:       10,
+            ParameterNames.ALLOWED_IN_ACTIVITIES:        2,
+            ParameterNames.ALLOWED_OUT_ACTIVITIES:       3,
             ParameterNames.START_ACTIVITY:               start_activity,
             ParameterNames.END_ACTIVITY:                 end_activity,
-            ParameterNames.INTERESTING_PLACES_THRESHOLD: 0.8,
+            ParameterNames.INTERESTING_PLACES_THRESHOLD: 1.0,
             ParameterNames.LOG:                          optimized_for_replay_log,
+            ParameterNames.NUM_TRACES:                   len(log),
             ParameterNames.FITTING_PLACES:               list(),
-            ParameterNames.IMPORTANT_TRACES:             most_common_traces
+            ParameterNames.IMPORTANT_TRACES:             most_common_traces,
+            ParameterNames.REVERSE_MAPPING:              reverse_mapping,
+            ParameterNames.MAX_CONNECTED_ARCS:           2
         }
         self.pre_pruning_strategy.initialize(parameters=heuristic_parameters)
         stat_logger.algo_started()
@@ -128,10 +131,6 @@ class EstMiner:
             logger=logger,
             stat_logger=stat_logger
         )
-        # start_place = Place(0, start_activity, 0, 1)
-        # end_place = Place(end_activity, 0, 1, 0)
-        # candidate_places.append(start_place)
-        # candidate_places.append(end_place)
         stat_logger.search_finished()
         stat_logger.post_processing_started()
         resulting_places = self.post_processing_strategy.execute(
@@ -139,6 +138,7 @@ class EstMiner:
             parameters=heuristic_parameters,
             logger=logger
         )
+        #resulting_places = candidate_places
         stat_logger.post_processing_finished()
         stat_logger.algo_finished()
         net, src, sink = self._construct_net(log, activities, resulting_places, reverse_mapping)

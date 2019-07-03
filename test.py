@@ -3,12 +3,14 @@ import logging
 import os
 import csv
 
-from pm4py.algo.discovery.est_miner.builder import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
-MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder, \
+from pm4py.algo.discovery.est_miner.builder \
+import EstMinerDirector, TestEstMinerBuilder, StandardEstMinerBuilder, \
+MaxCutoffsAbsFreqEstMinerBuilder, MaxCutoffsRelTraceFreqEstMinerBuilder, \
+RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder, \
 PlaceInterestPrePruningRestrictRedEdgesEstMinerBuilder, \
 MaxUnderfedAvgTraceOccEstMinerBuilder, MaxUnderfedAvgFirstOccIndexEstMinerBuilder, \
 AlternativeInterestingPlacesEstMinerBuilder, RestrictNumInAndOutTransitionsEstMinerBuilder, \
-ImportantTracesEstMinerBuilder
+ImportantTracesEstMinerBuilder, PrePruningAndReduceComplexityPostProcessingEstMinerBuilder
 
 from pm4py.algo.discovery.est_miner.utils.place import Place
 from pm4py.objects.log.importer.xes import factory as xes_importer
@@ -29,11 +31,11 @@ data_set_paths = [
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'artificial-xor-test-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'two-trans-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'repair-set'),
-    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'reviewing-set'),
+#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'reviewing-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'teleclaims-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-mod-set'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'road-traffic-fine-set'),
-#    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-pre-processed'),
+    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'sepsis-pre-processed'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'basILP40'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'LogXOR-AND'),
 #    os.path.join(pathlib.Path.home(), 'Documents', 'Studium', 'Masterarbeit', 'experimental-eval', 'LogXOR2'),
@@ -46,10 +48,10 @@ data_set_file_names = [
 #    'TwoActivities.xes',
 #    'repairExample.xes',
 #    'reviewing.xes',
-    'teleclaims.xes',
+#    'teleclaims.xes',
 #    'sepsis.xes',
 #    'road-traffic-fines.xes',
-#    'Sepsis-doubletracesout.xes',
+    'Sepsis-doubletracesout.xes',
 #    'test40.xes',
 #    'Log-xor-and.xes',
 #    'Log-dependencyXOR2.xes',
@@ -136,6 +138,7 @@ def construct_est_miners():
     alternative_interesting_places_est_miner_builder = AlternativeInterestingPlacesEstMinerBuilder()
     restrict_num_in_out_trans_est_miner_builder = RestrictNumInAndOutTransitionsEstMinerBuilder()
     important_traces_est_miner_builder = ImportantTracesEstMinerBuilder()
+    reduce_complexity_est_miner_builder = PrePruningAndReduceComplexityPostProcessingEstMinerBuilder()
 
     est_miner_director.construct(standard_est_miner_builder)
     est_miner_director.construct(max_cutoffs_abs_trace_freq_est_miner_builder)
@@ -148,6 +151,7 @@ def construct_est_miners():
     est_miner_director.construct(alternative_interesting_places_est_miner_builder)
     est_miner_director.construct(restrict_num_in_out_trans_est_miner_builder)
     est_miner_director.construct(important_traces_est_miner_builder)
+    est_miner_director.construct(reduce_complexity_est_miner_builder)
 
     #est_miners.append(standard_est_miner_builder.est_miner)
     #est_miners.append(max_cutoffs_abs_trace_freq_est_miner_builder.est_miner)
@@ -157,10 +161,11 @@ def construct_est_miners():
     #est_miners.append(alpha_miner_refinment_search_est_miner_builder.est_miner)
     #est_miners.append(max_underfed_avg_trace_occ_est_miner_builder.est_miner)
     #est_miners.append(max_underfed_avg_first_occ_index_est_miner_builder.est_miner)
-    est_miners.append(interest_places_pre_pruning_est_miner_builder.est_miner)
+    #est_miners.append(interest_places_pre_pruning_est_miner_builder.est_miner)
     #est_miners.append(alternative_interesting_places_est_miner_builder.est_miner)
     #est_miners.append(restrict_num_in_out_trans_est_miner_builder.est_miner)
     #est_miners.append(important_traces_est_miner_builder.est_miner)
+    est_miners.append(reduce_complexity_est_miner_builder.est_miner)
 
     return est_miners
 
@@ -203,7 +208,7 @@ def execute_experiments():
     est_miners = construct_est_miners()
     parameters = dict()
     parameters['key'] = 'concept:name'
-    parameters['tau'] = 0.7
+    parameters['tau'] = 0.4
 
     for i in range(0, len(data_set_paths)):
         stat_loggers = dict()

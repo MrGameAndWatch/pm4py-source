@@ -74,6 +74,18 @@ def most_common_traces(log, num_most_common=1):
         res.append(log[trace_key][1])
     return res
 
+def eventually_follows(a1, a2, trace_bit_map):
+    # returns true if a2 eventually follows a1 in the trace
+    found_a1 = False
+    follows  = False
+    for e in trace_bit_map:
+        if found_a1:
+            if e == a2:
+                follows = True
+        if e == a1:
+            found_a1 = True
+    return follows
+
 # def optimize_for_replay(log, key):
 #     """
 #     Output a log as dictionary {trace: freq} to optimize the replay of the log.

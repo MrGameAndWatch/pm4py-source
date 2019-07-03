@@ -17,12 +17,12 @@ from pm4py.algo.discovery.est_miner.hooks.post_processing_strategy \
 import NoPostProcessingStrategy, DeleteDuplicatePlacesPostProcessingStrategy, \
 RemoveRedundantPlacesLPPostProcessingStrategy, RemoveRedundantAndImplicitPlacesPostProcessingStrategy, \
 RemoveImplicitPlacesLPPostProcessingStrategy, RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy, \
-RemoveImplicitPlacesPostProcessingStrategy
+RemoveImplicitPlacesPostProcessingStrategy, RemoveImplicitPlacesAndReduceArcsPostProcessingStrategy
 
 from pm4py.algo.discovery.est_miner.hooks.pre_pruning_strategy \
 import NoPrePruningStrategy, PrePruneUselessPlacesStrategy, InterestingPlacesPrePruning, \
 InterestingPlacesWithoutLoopsPrePruning, RestrictNumInputOutputTransPrePruning, \
-ImportantTracesPrePruning
+ImportantTracesPrePruning, InterestingPlacesAndEnforeSimplicityPrePruningStrategy
 
 class EstMinerDirector:
     """
@@ -280,7 +280,7 @@ class AlternativeInterestingPlacesEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class RestrictNumInAndOutTransitionsEstMinerBuilder(EstMinerBuilder):
 
@@ -300,7 +300,7 @@ class RestrictNumInAndOutTransitionsEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class ImportantTracesEstMinerBuilder(EstMinerBuilder):
 
@@ -321,5 +321,46 @@ class ImportantTracesEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
         #self.est_miner.post_processing_strategy = NoPostProcessingStrategy()
+
+class ImportantPlacesPrePruningAndEnforcedSimplicityEstMinerBuilder(EstMinerBuilder):
+
+    def build_name(self):
+        self.est_miner.name = 'IPPESEM'
+
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy()
+
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = InterestingPlacesAndEnforeSimplicityPrePruningStrategy()
+
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
+
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
+
+class PrePruningAndReduceComplexityPostProcessingEstMinerBuilder(EstMinerBuilder):
+
+    def build_name(self):
+        self.est_miner.name = 'RCEM'
+
+    def build_pre_processing_strategy(self):
+        self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
+
+    def build_order_calculation_strategy(self):
+        self.est_miner.order_calculation_strategy = MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy()
+
+    def build_pre_pruning_strategy(self):
+        self.est_miner.pre_pruning_strategy = InterestingPlacesPrePruning()
+
+    def build_search_strategy(self):
+        self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
+
+    def build_post_processing_strategy(self):
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesAndReduceArcsPostProcessingStrategy()
+
