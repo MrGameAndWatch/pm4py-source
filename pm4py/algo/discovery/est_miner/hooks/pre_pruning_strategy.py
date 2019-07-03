@@ -321,8 +321,7 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
                 if (normalization_factor == 0):
                     relation_support[a1, a2] = 0
                 else:
-                    relation_support[a1, a2] = (score / normalization_factor)
-        print(relation_support)
+                    relation_support[a1, a2] = (score / normalization_factor) 
         return relation_support
     
     def _build_per_trace_support(self, log, activites):
@@ -359,3 +358,23 @@ class InterestingPlacesPrePruning(PrePruningStrategy):
                     if (self._relation_support[a, b] < threshold) and (a != b):
                         return True
         return False
+
+class InterestingPlacesAndEnforeSimplicityPrePruningStrategy(PrePruningStrategy):
+
+    def __init__(self):
+        self._interesting_places_pre_pruning = InterestingPlacesPrePruning()
+    
+    def initialize(self, parameters=None):
+        self._interesting_places_pre_pruning.initialize(parameters=parameters)
+    
+    def execute(self, candidate_place, parameters=None):
+        return (
+            self._interesting_places_pre_pruning.execute(candidate_place, parameters=parameters)
+            or self._place_too_complicated(candidate_place, parameters=parameters)
+        )
+    
+    def _place_too_complicated(self, candidate_place, parameters=None):
+        return (
+            candidate_place.num_input_trans >= parameters[ParameterNames.ALLOWED_IN_ACTIVITIES]
+            and candidate_place.num_output_trans >= parameters[ParameterNames.ALLOWED_OUT_ACTIVITIES]
+        )
