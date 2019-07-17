@@ -103,7 +103,7 @@ class TestEstMinerBuilder(EstMinerBuilder):
 class StandardEstMinerBuilder(EstMinerBuilder):
 
     def build_name(self):
-        self.est_miner.name = 'OPEM'
+        self.est_miner.name = 'eST-Miner'
 
     def build_pre_processing_strategy(self):
         self.est_miner.pre_processing_strategy = NoPreProcessingStrategy()
