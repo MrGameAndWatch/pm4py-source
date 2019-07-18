@@ -118,7 +118,7 @@ class StandardEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
 
@@ -138,7 +138,7 @@ class MaxCutoffsAbsFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
 
@@ -158,7 +158,7 @@ class MaxCutoffsRelTraceFreqEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class MaxUnderfedAvgFirstOccIndexEstMinerBuilder(EstMinerBuilder):
 
@@ -178,7 +178,7 @@ class MaxUnderfedAvgFirstOccIndexEstMinerBuilder(EstMinerBuilder):
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='red')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 class MaxUnderfedAvgTraceOccEstMinerBuilder(EstMinerBuilder):
 
@@ -219,7 +219,7 @@ class RestrictBlueEdgesAndMaxCutoffsAbsTraceFreqEstMinerBuilder(EstMinerBuilder)
         self.est_miner.search_strategy = TreeDfsStrategy(restricted_edge_type='blue')
     
     def build_post_processing_strategy(self):
-        self.est_miner.post_processing_strategy = RemoveConcurrentAndStructuralImplicitPlacesPostProcessingStrategy()
+        self.est_miner.post_processing_strategy = RemoveImplicitPlacesPostProcessingStrategy()
 
 # class AlphaMinerRefinementSearchEstMinerBuilder(EstMinerBuilder):
 
