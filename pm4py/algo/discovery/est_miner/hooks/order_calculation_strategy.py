@@ -1,8 +1,22 @@
 import abc
+import math
 
 import pm4py.objects.log.util.log as log_util
 from pm4py.algo.discovery.est_miner.utils.activity_order import ActivityOrder, \
 ActivityOrderBuilder
+
+def get_abs_activity_occ(log, activities):
+    abs_activity_occurrences = {}
+    for a in activities:
+        occurrences = 0
+        for (trace_key, (freq, trace_bit_string)) in log.items():
+            trace_occurrences = 0
+            for e in trace_bit_string:
+                if a == e:
+                    trace_occurrences += 1
+            occurrences += trace_occurrences * freq
+        abs_activity_occurrences[a] = occurrences
+    return abs_activity_occurrences
 
 def get_abs_trace_occ(log, activities):
     abs_trace_occ = {}
@@ -147,34 +161,35 @@ class MaxUnderfedPlacesThroughAFOIOrderStrategy(OrderCalculationStrategy):
         input_order_builder = ActivityOrderBuilder(activities)
         output_order_builder = ActivityOrderBuilder(activities)
         sorted_avg_first_occ_index = sorted(avg_first_occ_index.items(), key=lambda x: x[1])
+        print(sorted_avg_first_occ_index)
 
         for i in range(len(sorted_avg_first_occ_index)):
-            for j in range(i+1, len(sorted_avg_first_occ_index)):
-                output_order_builder.add_relation(larger=sorted_avg_first_occ_index[j][0], smaller=sorted_avg_first_occ_index[i][0])
-        
-        for i in reversed(range(len(sorted_avg_first_occ_index))):
             for j in reversed(range(i)):
                 input_order_builder.add_relation(larger=sorted_avg_first_occ_index[j][0], smaller=sorted_avg_first_occ_index[i][0])
+                output_order_builder.add_relation(larger=sorted_avg_first_occ_index[i][0], smaller=sorted_avg_first_occ_index[j][0])
         
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
-    def _avg_first_occ_index(self, log, activites):
+    def _avg_first_occ_index(self, log, activities):
         avg_first_occ_index = dict()
-        for a in activites:
-            index_sum = 0
-            traces = 0
+        for a in activities:
+            sum = 0
+            num_of_occurring_traces = 0
             for (trace_key, (freq, trace_bit_string)) in log.items():
-                occ = False
+                first_occurrence_index = -1
                 index = 1
                 for e in trace_bit_string:
-                    if a == e:
-                        if not occ:
-                            index_sum += index
-                            occ = True
+                    if e == a:
+                        if first_occurrence_index == -1:
+                            first_occurrence_index = index
                     index += 1
-                if occ:
-                    traces += freq
-            avg_first_occ_index[a] = (index_sum / traces)
+                if first_occurrence_index != -1:
+                    sum += freq * first_occurrence_index
+                    num_of_occurring_traces += freq
+            if (num_of_occurring_traces > 0):
+                avg_first_occ_index[a] = (sum / num_of_occurring_traces)
+            else:
+                avg_first_occ_index[a] = math.inf
         return avg_first_occ_index
 
 class MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy):
@@ -187,8 +202,12 @@ class MaxUnderfedPlacesThroughAvgTraceOccOrderStrategy(OrderCalculationStrategy)
         sorted_avg_trace_occ = sorted(avg_trace_occ.items(), key=lambda x: x[1])
         # Build input order
         # most frequent element is minimal
-        for i in reversed(range(len(sorted_avg_trace_occ))):
-            for j in reversed(range(i)):
+        #for i in reversed(range(len(sorted_avg_trace_occ))):
+        #    for j in reversed(range(i)):
+                #input_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
+
+        for i in range(len(sorted_avg_trace_occ)):
+            for j in range(i):
                 input_order_builder.add_relation(larger=sorted_avg_trace_occ[j][0], smaller=sorted_avg_trace_occ[i][0])
         
         # Build output order
@@ -211,8 +230,8 @@ class MaxUnderfedPlacesThroughAbsTraceFreqOrderStrategy(OrderCalculationStrategy
         sorted_abs_trace_occ = sorted(abs_trace_occ.items(), key=lambda x: x[1])
         # Build input order
         # most frequent element is minimal
-        for i in reversed(range(len(sorted_abs_trace_occ))):
-            for j in reversed(range(i)):
+        for i in range(len(sorted_abs_trace_occ)):
+            for j in range(i):
                 input_order_builder.add_relation(larger=sorted_abs_trace_occ[j][0], smaller=sorted_abs_trace_occ[i][0])
         
         # Build output order
@@ -235,8 +254,8 @@ class MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStr
         sorted_rel_trace_occ = sorted(rel_trace_occ.items(), key=lambda x: x[1])
         # Build input order
         # most frequent element is minimal
-        for i in reversed(range(len(sorted_rel_trace_occ))):
-            for j in reversed(range(i)):
+        for i in range(len(sorted_rel_trace_occ)):
+            for j in range(i):
                 input_order_builder.add_relation(larger=sorted_rel_trace_occ[j][0], smaller=sorted_rel_trace_occ[i][0])
         
         # Build output order
@@ -245,6 +264,20 @@ class MaxUnderfedPlacesThroughRelativeTraceFreqOrderStrategy(OrderCalculationStr
             for j in range(i):
                 output_order_builder.add_relation(larger=sorted_rel_trace_occ[j][0], smaller=sorted_rel_trace_occ[i][0])
 
+        return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
+
+class MaxCutoffsThroughAbsoluteActivityFreqOrderStrategy(OrderCalculationStrategy):
+
+    def execute(self, log, activities):
+        abs_activity_freq = get_abs_activity_occ(log, activities)
+        input_order_builder = ActivityOrderBuilder(activities)
+        output_order_builder = ActivityOrderBuilder(activities)
+        sorted_abs_activity_freq = sorted(abs_activity_freq.items(), key=lambda x: x[1])
+
+        for i in range(len(sorted_abs_activity_freq)):
+            for j in range(i):
+                input_order_builder.add_relation(larger=sorted_abs_activity_freq[j][0], smaller=sorted_abs_activity_freq[i][0])
+                output_order_builder.add_relation(larger=sorted_abs_activity_freq[j][0], smaller=sorted_abs_activity_freq[i][0])
         return (input_order_builder.get_ordering(), output_order_builder.get_ordering())
 
 class LexicographicalOrderStrategy(OrderCalculationStrategy):
