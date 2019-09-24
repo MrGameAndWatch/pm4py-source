@@ -110,12 +110,17 @@ class RemoveRedundantPlacesLPPostProcessingStrategy(PostProcessingStrategy):
 
 
 class RemoveImplicitPlacesPostProcessingStrategy(PostProcessingStrategy):
+
+    def _order_candidate_places(self, candidate_places):
+        return sorted(candidate_places, key=lambda p: p.num_input_trans + p.num_output_trans, reverse=True)
+
     def execute(self, candidate_places, parameters=None, logger=None):
         # create source and sink place (remove them at the end again)
         source = Place(0, parameters[ParameterNames.START_ACTIVITY], 0, 1)
         sink = Place(parameters[ParameterNames.END_ACTIVITY], 0, 1, 0)
         candidate_places.append(source)
         candidate_places.append(sink)
+        candidate_places = self._order_candidate_places(candidate_places)
         # build pre and post
         pre = {}
         post = {}
