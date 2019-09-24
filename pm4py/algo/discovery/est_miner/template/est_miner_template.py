@@ -99,7 +99,9 @@ class EstMiner:
         log = self.pre_processing_strategy.execute(log)
         log = est_utils.insert_unique_start_and_end_activity(log)
         optimized_for_replay_log, activities, start_activity, end_activity, reverse_mapping = est_utils.optimize_for_replay(log, parameters['key'])
-        most_common_traces = est_utils.most_common_traces(optimized_for_replay_log, num_most_common=1)
+        #most_common_traces = est_utils.most_common_traces(optimized_for_replay_log, num_most_common=0)
+        most_common_traces = est_utils.get_most_common_traces_quantil(optimized_for_replay_log, quantil=0.8)
+        most_important_traces_including_all_activties = est_utils.most_important_traces_including_all_activities(optimized_for_replay_log, activities)
         print(most_common_traces)
         in_order, out_order = self.order_calculation_strategy.execute(optimized_for_replay_log, activities)
         stat_logger = RuntimeStatisticsLogger(self.name, activities, in_order, out_order)
@@ -133,6 +135,7 @@ class EstMiner:
         )
         stat_logger.search_finished()
         stat_logger.post_processing_started()
+
         resulting_places = self.post_processing_strategy.execute(
             candidate_places,
             parameters=heuristic_parameters,

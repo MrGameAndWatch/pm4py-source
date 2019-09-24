@@ -74,6 +74,35 @@ def most_common_traces(log, num_most_common=1):
         res.append(log[trace_key][1])
     return res
 
+def get_most_common_traces_quantil(log, quantil=1.0):
+    num_traces = 0
+    for (trace_key, (freq, trace_bit_string)) in log.items():
+        num_traces += freq
+
+    first_n = quantil * num_traces
+    sorted_log = sorted(log, key=lambda k: log[k][0], reverse=True)
+    res = list()
+    i = 0
+
+    while first_n > 0:
+        res.append(log[sorted_log[i]][1])
+        first_n -= log[sorted_log[i]][0]
+        i += 1
+    return res
+
+def most_important_traces_including_all_activities(log, activities):
+    sorted_by_trace_freq = sorted(log.items(), key=lambda kv: kv[1][0], reverse=True)
+    included_activities = set()
+    most_important_traces = list()
+    for (tace_key, [freq, trace_bit_map]) in sorted_by_trace_freq:
+        most_important_traces.append(trace_bit_map)
+        for activity in activities:
+            if activity in trace_bit_map:
+                included_activities.add(activity)
+        if (included_activities == set(activities)):
+            return most_important_traces
+    return most_important_traces
+
 def eventually_follows(a1, a2, trace_bit_map):
     # returns true if a2 eventually follows a1 in the trace
     found_a1 = False
@@ -85,42 +114,6 @@ def eventually_follows(a1, a2, trace_bit_map):
         if e == a1:
             found_a1 = True
     return follows
-
-# def optimize_for_replay(log, key):
-#     """
-#     Output a log as dictionary {trace: freq} to optimize the replay of the log.
-
-#     Parameters:
-#     log: :class:`pm4py.log.log.EventLog`
-#             The event log of traces
-    
-#     Returns:
-#     - Newly formated log
-#     """
-#     events = log_util.get_event_labels(log, key)
-#     events_to_int = dict()
-#     ints_to_events = dict()
-#     activities = list()
-#     start_activity = 0
-#     end_activity = 0
-#     for i in range(0, len(events)):
-#         activities.append(i)
-#         events_to_int[events[i]] = i # converted events to integers
-#         ints_to_events[i] = events[i]
-#         if (events[i] == constants.START_ACTIVITY):
-#             start_activity = i
-#         if (events[i] == constants.END_ACTIVITY):
-#             end_activity = i
-
-#     optimized_log = dict()
-#     for trace in log:
-#         trace_bitstring = trace_bitmap(trace, events_to_int, key)
-#         trace_str = trace_string(trace, key)
-#         if trace_str not in optimized_log:
-#             optimized_log[trace_str] = [1, trace_bitstring]
-#         else:
-#             optimized_log[trace_str][0] += 1
-#     return optimized_log, activities, start_activity, end_activity, ints_to_events
 
 def trace_bitmap(trace, events_to_int, key):
     res = list()
