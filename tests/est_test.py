@@ -25,3 +25,9 @@ class EstLogTransformerTest(unittest.TestCase):
             self.assertNotIn(trace.__getitem__(len(trace) - 1), initial_activities)
             self.assertEqual(trace.__getitem__(0), expected_start)
             self.assertEqual(trace.__getitem__(len(trace) - 1), expected_end)
+
+    def test_logCorrectlyTransformedToBitmaskBasedLog(self):
+        log = xes_importer.apply(os.path.join(os.path.dirname(__file__), INPUT_DATA_DIR, "running-example.xes"))
+        bitmasked_log = log_transformation.transform_to_bitmasked_log(log)
+        for i in range(len(log)):
+            self.assertEqual(len(log.__getitem__(i)), len(bitmasked_log.__getitem__(i)))
